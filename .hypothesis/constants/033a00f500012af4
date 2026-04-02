@@ -1,0 +1,4 @@
+# file: C:\Users\prajwal reddy l\Documents\My Personal Placement\Projo\openenv_email_ops\models.py
+# hypothesis_version: 6.151.10
+
+[0.0, 1.0, 'VIP', 'classify_email', 'current_email', 'customer', 'defer_email', 'easy', 'escalation', 'generate_reply', 'ground_truth', 'hard', 'high', 'important', 'internal', 'low', 'medium', 'prioritize_email', 'promotion', 'route_email', 'sales', 'spam', 'spammer', 'support', 'urgency_score']

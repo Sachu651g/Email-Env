@@ -1,0 +1,4 @@
+# file: C:\Users\prajwal reddy l\AppData\Roaming\Python\Python313\site-packages\langsmith\schemas.py
+# hypothesis_version: 6.151.10
+
+[100, 'GET', '_client', '_cluster', '_clusters', '_job_id', '_report', '_session_id', 'allow', 'api', 'avg', 'categorical', 'chain', 'chat', 'cluster_id', 'clusters', 'continuous', 'embedding', 'freeform', 'id', 'inputs', 'inputs_schema', 'json', 'kv', 'limit', 'llm', 'metadata', 'model', 'num_downloads', 'num_likes', 'num_views', 'offset', 'outputs_schema', 'parser', 'prompt', 'remove_extra_fields', 'retriever', 'revision_id', 'runs', 'sum', 'tags', 'tool', 'trace_id', 'updated_at', 'weighted_key']

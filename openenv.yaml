@@ -1,0 +1,76 @@
+metadata:
+  name: "openenv-email-ops"
+  version: "1.0.0"
+  description: "Enterprise inbox simulation RL environment for AI agent training"
+  author: "openenv-email-ops contributors"
+  license: "MIT"
+
+tasks:
+  - task_id: "easy"
+    description: "Classify emails only. Single-component evaluation with small inbox."
+    difficulty: "easy"
+    max_steps: 30
+    inbox_size: 5
+    reward_components:
+      - "classification"
+
+  - task_id: "medium"
+    description: "Classify, prioritize, and route emails. Three-component evaluation with medium inbox."
+    difficulty: "medium"
+    max_steps: 50
+    inbox_size: 8
+    reward_components:
+      - "classification"
+      - "prioritization"
+      - "routing"
+
+  - task_id: "hard"
+    description: "Full pipeline: classify, prioritize, route, and generate replies. Four-component evaluation with large inbox."
+    difficulty: "hard"
+    max_steps: 80
+    inbox_size: 10
+    reward_components:
+      - "classification"
+      - "prioritization"
+      - "routing"
+      - "reply"
+
+observation_schema:
+  current_email:
+    type: "Email | null"
+    description: "The current email to process; null when inbox is empty"
+    fields:
+      id: "str"
+      subject: "str"
+      body: "str"
+      sender_type: "Literal['customer', 'spammer', 'VIP', 'internal']"
+      urgency_score: "float (0.0 to 1.0)"
+  inbox_summary:
+    type: "InboxSummary"
+    description: "Aggregate statistics about the remaining inbox"
+    fields:
+      counts_by_sender_type: "dict[str, int]"
+      urgency_distribution: "dict[str, int]"
+  action_history:
+    type: "list[Action]"
+    description: "All actions taken so far in the current episode"
+  step_count:
+    type: "int"
+    description: "Number of steps taken in the current episode"
+
+action_schema:
+  classify_email:
+    value_format: "Literal['spam', 'important', 'promotion']"
+    description: "Classify the current email into one of three categories"
+  prioritize_email:
+    value_format: "Literal['low', 'medium', 'high']"
+    description: "Assign a priority level to the current email"
+  route_email:
+    value_format: "Literal['support', 'sales', 'escalation']"
+    description: "Route the current email to the appropriate team"
+  generate_reply:
+    value_format: "str (free text, minimum 20 characters)"
+    description: "Generate a reply to the current email"
+  defer_email:
+    value_format: "null"
+    description: "Move the current email to the end of the inbox for later processing"
