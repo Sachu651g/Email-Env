@@ -15,6 +15,7 @@ dependencies = [
     "openai>=1.0.0",
     "fastapi>=0.110.0",
     "uvicorn>=0.29.0",
+    "openenv-core>=0.2.0",
 ]
 
 [project.optional-dependencies]
@@ -23,8 +24,10 @@ dev = [
     "hypothesis>=6.100.0",
 ]
 
+[project.scripts]
+server = "server.app:main"
+
 [tool.openenv]
 name = "openenv-email-ops"
 version = "1.0.0"
 tasks = ["easy", "medium", "hard"]
-entry_point = "openenv_email_ops.env:EmailOpsEnv"
