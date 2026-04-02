@@ -15,207 +15,186 @@ tags:
 
 # openenv-email-ops
 
-A production-grade [OpenEnv](https://openenv.dev) reinforcement learning environment that simulates enterprise inbox management. AI agents learn to classify, prioritize, route, and reply to emails across multi-step episodes with memory-based reward shaping.
+An OpenEnv-compatible RL environment for enterprise email triage. Agents learn to classify, prioritize, route, and reply to emails — with memory-based reward shaping and partial observability.
+
+Built for the OpenEnv × Scaler hackathon.
 
 ---
 
-## Problem Motivation
+## Why email?
 
-Enterprise email inboxes are a high-stakes, high-volume decision environment. A typical knowledge worker processes hundreds of emails per day, making rapid triage decisions that affect customer satisfaction, SLA compliance, and team efficiency. Mistakes — ignoring a VIP escalation, misrouting a support request, or endlessly deferring urgent items — have real business consequences.
+Email triage is something every company does, and it's genuinely hard to automate well. A spam filter isn't enough — you need to know *who* sent it (VIP vs. random customer), *how urgent* it is, *where* it should go (support vs. sales vs. escalation), and sometimes *what to say back*. Miss a VIP email and there are real consequences.
 
-This environment models that challenge as a reinforcement learning problem. An agent must learn not just to classify emails correctly, but to do so efficiently, handle VIP senders with priority, avoid infinite deferral loops, and generate contextually appropriate replies — all within a bounded episode. The reward function is designed to reflect real-world incentives: accuracy matters, but so does speed, consistency, and long-term consequence awareness.
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Agent (LLM)                          │
-│                  inference.py / custom agent                │
-└────────────────────────┬────────────────────────────────────┘
-                         │  Action
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     EmailOpsEnv                             │
-│                       env.py                                │
-│                                                             │
-│  ┌─────────────────┐   ┌──────────────────┐                │
-│  │  InboxGenerator │   │  EpisodeManager  │                │
-│  │  inbox_generator│   │  episode_manager │                │
-│  │  .py            │──▶│  .py             │                │
-│  └─────────────────┘   └──────────────────┘                │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │                  RewardEngine                        │   │
-│  │                  reward_engine.py                    │   │
-│  │                                                      │   │
-│  │  ┌──────────────┐  ┌──────────────┐                 │   │
-│  │  │Classification│  │Prioritization│                 │   │
-│  │  │   Grader     │  │   Grader     │                 │   │
-│  │  └──────────────┘  └──────────────┘                 │   │
-│  │  ┌──────────────┐  ┌──────────────┐                 │   │
-│  │  │   Routing    │  │    Reply     │                 │   │
-│  │  │   Grader     │  │   Grader     │                 │   │
-│  │  └──────────────┘  └──────────────┘                 │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────┐   ┌──────────────────┐                │
-│  │  MemoryTracker  │   │  MetricsTracker  │                │
-│  │  memory_tracker │   │  metrics.py      │                │
-│  │  .py            │   └──────────────────┘                │
-│  └─────────────────┘                                       │
-└────────────────────────┬────────────────────────────────────┘
-                         │  (Observation, Reward, done, info)
-                         ▼
-                      Agent
-
-Supporting modules:
-  models.py        — Pydantic models: Email, Action, Observation, Reward
-  pretty_printer.py — Serializes observations to human-readable text / JSON
-  parser.py        — Parses LLM output into Action models
-  openenv.yaml     — Machine-readable environment and task metadata
-```
+This environment captures that complexity. The agent sees realistic email content with noise injected (typos, informal phrasing, ambiguous subjects) and has to make decisions without seeing the ground truth labels. Past decisions affect future rewards — ignore a VIP email early and you'll pay for it later in the episode.
 
 ---
 
-## Action Space
-
-The agent submits one action per step. All actions are validated by Pydantic before processing.
-
-| Action Type | Value | Description |
-|---|---|---|
-| `classify_email` | `"spam"` \| `"important"` \| `"promotion"` | Classify the current email into one of three categories |
-| `prioritize_email` | `"low"` \| `"medium"` \| `"high"` | Assign a priority level to the current email |
-| `route_email` | `"support"` \| `"sales"` \| `"escalation"` | Route the email to the appropriate team |
-| `generate_reply` | free text (min 20 chars) | Generate a reply to the current email |
-| `defer_email` | _(no value)_ | Move the current email to the end of the inbox for later processing |
-
----
-
-## Observation Space
-
-Each step returns an `Observation` with four fields:
-
-| Field | Type | Description |
-|---|---|---|
-| `current_email` | `Email \| None` | The email to act on; `None` when inbox is empty |
-| `inbox_summary` | `InboxSummary` | Aggregate stats: counts by sender type and urgency distribution |
-| `action_history` | `list[Action]` | All actions taken so far in the current episode |
-| `step_count` | `int` | Number of steps taken in the current episode |
-
-Ground truth labels (correct classification, priority, route) are attached to each email internally but are **never exposed** in the observation — the agent must infer the correct action from email content alone.
-
----
-
-## Reward Design
-
-The reward function is designed to reflect real-world email operations incentives:
-
-| Component | Value | Reasoning |
-|---|---|---|
-| Correct classification | +0.2 | Core task accuracy; the most fundamental signal |
-| Correct prioritization | +0.2 | Ensures urgent items are surfaced appropriately |
-| Correct routing | +0.2 | Prevents emails from landing in the wrong team's queue |
-| Reply quality | up to +0.2 | Proportional to heuristic quality score (length, greeting, relevance) |
-| Efficiency bonus | +0.1 | Rewards fast, decisive action within minimum required steps |
-| Incorrect classification | -0.2 | Symmetric penalty to classification reward; wrong answers have cost |
-| Deferral penalty | -0.05/step | Small per-step cost to discourage unnecessary deferral |
-| VIP ignore penalty | -0.3 | Episode-level penalty for ignoring high-value senders; reflects real SLA risk |
-| Excessive deferral penalty | -0.5 | Prevents infinite deferral loops on the same email (triggered after 2 deferrals) |
-| VIP consistency bonus | +0.3 | Episode-level bonus for handling all VIP emails correctly; rewards long-term planning |
-
-Delayed rewards (VIP penalties/bonuses, early classification bonuses) are computed at episode end and included in the final `info` dict under `metrics.delayed_rewards`.
-
----
-
-## Task Difficulty Levels
-
-| Task | Inbox Size | Max Steps | Evaluated Components |
-|---|---|---|---|
-| `easy` | 5 | 30 | classification only |
-| `medium` | 8 | 50 | classification, prioritization, routing |
-| `hard` | 10 | 80 | classification, prioritization, routing, reply |
-
----
-
-## Setup
-
-### Prerequisites
-
-- Python 3.11+
-- An OpenAI API key
-
-### Install dependencies
+## Quick start
 
 ```bash
 pip install -r requirements.txt
-```
 
-### Environment variables
+# dry run (no API key needed)
+python inference.py --dry-run
 
-```bash
+# live run
 export OPENAI_API_KEY="sk-..."
-export MODEL_NAME="gpt-4o-mini"   # optional, defaults to gpt-4o-mini
-```
-
----
-
-## Running Inference
-
-### Local
-
-```bash
+export MODEL_NAME="gpt-4o-mini"
 python inference.py
 ```
 
-### Docker
-
+Docker:
 ```bash
-# Build
 docker build -t openenv-email-ops .
-
-# Run (inject API key at runtime)
 docker run --rm -e OPENAI_API_KEY="sk-..." openenv-email-ops
 ```
 
 ---
 
-## Example Output
+## Environment interface
 
-Baseline scores with `gpt-4o-mini` (dry-run mode):
+```python
+from openenv_email_ops.env import EmailOpsEnv
+from openenv_email_ops.models import Action, TaskConfig
 
-```json
-{"event": "END", "task_id": "easy", "total_reward": 0.7, "score_breakdown": {"classification": 0.4, "efficiency_bonus": 0.2}}
-{"event": "END", "task_id": "medium", "total_reward": 0.6, "score_breakdown": {"prioritization": 0.2, "efficiency_bonus": 0.2, "routing": 0.2, "classification": 0.0}}
-{"event": "END", "task_id": "hard", "total_reward": 1.1, "score_breakdown": {"prioritization": 0.2, "efficiency_bonus": 0.2, "routing": 0.4, "reply": 0.3, "classification": 0.0}}
+task = TaskConfig(
+    task_id="hard", description="Full pipeline", difficulty="hard",
+    max_steps=80, inbox_size=10,
+    reward_components=["classification", "prioritization", "routing", "reply"]
+)
+env = EmailOpsEnv(task_config=task, seed=42)
+
+obs = env.reset()
+obs, reward, done, info = env.step(Action(action_type="classify_email", value="important"))
+state = env.state()
 ```
 
 ---
 
-## Project Structure
+## Action space
+
+| Action | Values | Notes |
+|---|---|---|
+| `classify_email` | `spam` / `important` / `promotion` | Core triage decision |
+| `prioritize_email` | `low` / `medium` / `high` | Urgency assignment |
+| `route_email` | `support` / `sales` / `escalation` | Team routing |
+| `generate_reply` | free text (≥20 chars) | Scored on length, greeting, relevance |
+| `defer_email` | — | Moves email to end of inbox; costs -0.05/step |
+
+---
+
+## Observation space
+
+```python
+{
+  "current_email": {
+    "id": "uuid",
+    "subject": "...",
+    "body": "...",
+    "sender_type": "customer | spammer | VIP | internal",
+    "urgency_score": 0.0–1.0
+    # ground_truth is NEVER exposed to the agent
+  },
+  "inbox_summary": {
+    "counts_by_sender_type": {"customer": 2, "VIP": 1, ...},
+    "urgency_distribution": {"low": 1, "medium": 2, "high": 1}
+  },
+  "action_history": [...],
+  "step_count": 3
+}
+```
+
+---
+
+## Reward function
+
+| Signal | Value | When |
+|---|---|---|
+| Correct classification | +0.2 | action matches ground truth |
+| Correct prioritization | +0.2 | action matches ground truth |
+| Correct routing | +0.2 | action matches ground truth |
+| Reply quality | 0–0.2 | heuristic: length + greeting + keyword match |
+| Efficiency bonus | +0.1 | decision made within first step |
+| Wrong classification | -0.2 | misclassified email |
+| Deferral penalty | -0.05 | per defer action |
+| VIP ignore penalty | -0.3 | VIP not classified as important within 3 steps |
+| Excessive deferral | -0.5 | same email deferred 3+ times |
+| VIP consistency bonus | +0.3 | all VIP emails handled correctly in episode |
+
+The reward is shaped across the full trajectory — not just at the end. This forces the agent to learn long-term consequences, not just greedy per-step decisions.
+
+---
+
+## Tasks
+
+| Task | Inbox | Max steps | What's graded |
+|---|---|---|---|
+| `easy` | 5 emails | 30 | classification only |
+| `medium` | 8 emails | 50 | classify + prioritize + route |
+| `hard` | 10 emails | 80 | full pipeline including reply |
+
+---
+
+## Baseline scores (dry-run, seed=42)
+
+```
+easy:   total_reward=0.70  (classification: 0.40, efficiency_bonus: 0.20)
+medium: total_reward=0.60  (prioritization: 0.20, routing: 0.20, efficiency_bonus: 0.20)
+hard:   total_reward=1.10  (routing: 0.40, reply: 0.30, prioritization: 0.20, efficiency_bonus: 0.20)
+```
+
+Structured log format (one JSON per line):
+```
+{"event": "START", "task_id": "easy", ...}
+{"event": "STEP", "task_id": "easy", "step": 0, "action_type": "classify_email", ...}
+{"event": "END", "task_id": "easy", "total_reward": 0.7, ...}
+```
+
+---
+
+## Novel features
+
+- **Memory-based reward shaping** — ignoring a VIP email at step 2 triggers a penalty at episode end
+- **Partial observability** — ground truth labels are hidden; agent must infer from noisy email content
+- **Realistic noise injection** — typos, informal phrasing, ambiguous subject prefixes
+- **Defer action with loop detection** — deferring the same email 3+ times triggers a -0.5 penalty
+- **Configurable difficulty** — swap task configs to change inbox size, max steps, and graded components
+
+---
+
+## Project layout
 
 ```
 openenv_email_ops/
-├── env.py              # EmailOpsEnv: main OpenEnv interface
-├── models.py           # Pydantic models
-├── inbox_generator.py  # Seeded email stream generation
-├── graders.py          # Per-component scoring graders
-├── reward_engine.py    # Reward aggregation and bonus/penalty logic
-├── memory_tracker.py   # Per-email decision history tracking
-├── episode_manager.py  # Inbox state and step management
-├── pretty_printer.py   # Human-readable serialization
-├── parser.py           # LLM output parsing
-└── metrics.py          # Per-episode metrics accumulation
+  env.py              # EmailOpsEnv — step/reset/state
+  models.py           # Pydantic models (Email, Action, Observation, Reward)
+  inbox_generator.py  # seeded email generation with noise
+  graders.py          # ClassificationGrader, PrioritizationGrader, RoutingGrader, ReplyGrader
+  reward_engine.py    # shaped reward + delayed bonuses/penalties
+  memory_tracker.py   # per-email action history
+  episode_manager.py  # inbox queue + step count
+  metrics.py          # per-episode accuracy tracking
+  pretty_printer.py   # observation → LLM prompt text
+  parser.py           # LLM output → Action
 
-inference.py            # Baseline OpenAI-backed agent
-openenv.yaml            # Machine-readable environment metadata
+inference.py          # baseline agent (OpenAI API)
+openenv.yaml          # task definitions + schemas
 Dockerfile
 requirements.txt
+tests/                # 84 tests (property-based + unit)
 ```
 
 ---
 
-## License
+## HF Space API
 
-MIT
+The deployed space exposes:
+
+- `GET /` — landing page
+- `POST /reset` — reset episode, returns initial observation
+- `POST /step?action_type=...&value=...` — take action
+- `GET /state` — current env state
+- `GET /demo` — dry-run output for all 3 tasks
+- `GET /docs` — Swagger UI
+
+Space URL: https://huggingface.co/spaces/sachingunagi66/openenv-email-ops
