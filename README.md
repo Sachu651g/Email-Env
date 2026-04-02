@@ -3,11 +3,14 @@ title: openenv-email-ops
 emoji: 📧
 colorFrom: blue
 colorTo: green
-sdk: gradio
-sdk_version: 4.44.0
-app_file: app.py
+sdk: docker
 pinned: false
 license: mit
+tags:
+  - openenv
+  - reinforcement-learning
+  - email
+  - rl-environment
 ---
 
 # openenv-email-ops
@@ -180,35 +183,12 @@ docker run --rm -e OPENAI_API_KEY="sk-..." openenv-email-ops
 
 ## Example Output
 
-```
-=== Task: easy ===
-Episode complete.
-Total reward: 0.80
-Score breakdown:
-  classification: 0.80
-  deferral_penalty: -0.05
+Baseline scores with `gpt-4o-mini` (dry-run mode):
 
-=== Task: medium ===
-Episode complete.
-Total reward: 1.45
-Score breakdown:
-  classification: 0.60
-  prioritization: 0.40
-  routing: 0.60
-  deferral_penalty: -0.10
-  vip_consistency_bonus: 0.30
-
-=== Task: hard ===
-Episode complete.
-Total reward: 2.10
-Score breakdown:
-  classification: 0.60
-  prioritization: 0.40
-  routing: 0.40
-  reply: 0.60
-  efficiency_bonus: 0.10
-  vip_consistency_bonus: 0.30
-  deferral_penalty: -0.05
+```json
+{"event": "END", "task_id": "easy", "total_reward": 0.7, "score_breakdown": {"classification": 0.4, "efficiency_bonus": 0.2}}
+{"event": "END", "task_id": "medium", "total_reward": 0.6, "score_breakdown": {"prioritization": 0.2, "efficiency_bonus": 0.2, "routing": 0.2, "classification": 0.0}}
+{"event": "END", "task_id": "hard", "total_reward": 1.1, "score_breakdown": {"prioritization": 0.2, "efficiency_bonus": 0.2, "routing": 0.4, "reply": 0.3, "classification": 0.0}}
 ```
 
 ---
