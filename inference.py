@@ -105,28 +105,81 @@ def log_end(task_id: str, total_reward: float, score_breakdown: dict,
 
 
 # ---------------------------------------------------------------------------
-# Mock agent for --dry-run mode
+# Smart rule-based mock agent for --dry-run mode
+# Reads observation and picks correct action based on sender_type + urgency
 # ---------------------------------------------------------------------------
 
-_MOCK_SEQUENCE = [
-    Action(action_type="classify_email", value="important"),
-    Action(action_type="prioritize_email", value="high"),
-    Action(action_type="route_email", value="support"),
-    Action(
-        action_type="generate_reply",
-        value="Hello, thank you for reaching out. We have received your message and will respond shortly.",
-    ),
-]
+def _smart_action(obs, task_id: str) -> Action:
+    """Rule-based agent that reads the observation and picks the best action."""
+    email = obs.current_email
+    if email is None:
+        return Action(action_type="classify_email", value="spam")
+
+    sender = email.sender_type
+    urgency = email.urgency_score
+    subject = email.subject.lower()
+    body = email.body.lower()
+
+    # Determine correct classification, priority, route from content
+    if sender == "spammer":
+        classification, priority, route = "spam", "low", "support"
+    elif sender == "VIP":
+        classification = "important"
+        priority = "high"
+        route = "escalation" if any(
+            w in subject for w in ["critical", "outage", "executive", "board", "contract", "investment"]
+        ) else "sales"
+    elif sender == "internal":
+        if urgency > 0.4 or any(w in subject for w in ["maintenance", "urgent", "policy", "planning", "it "]):
+            classification = "important"
+            priority = "high" if urgency > 0.7 else "medium"
+        else:
+            classification = "promotion"
+            priority = "low"
+        route = "support"
+    else:  # customer
+        if any(w in subject + body for w in ["refund", "billing", "account", "access", "damaged", "charged", "cannot", "problem", "issue", "order"]):
+            classification = "important"
+            priority = "high" if urgency > 0.7 else "medium"
+            route = "support"
+        else:
+            classification = "promotion"
+            priority = "low"
+            route = "sales"
+
+    step = obs.step_count
+    if task_id == "easy":
+        return Action(action_type="classify_email", value=classification)
+    elif task_id == "medium":
+        cycle = step % 3
+        if cycle == 0:
+            return Action(action_type="classify_email", value=classification)
+        elif cycle == 1:
+            return Action(action_type="prioritize_email", value=priority)
+        else:
+            return Action(action_type="route_email", value=route)
+    else:  # hard
+        cycle = step % 4
+        if cycle == 0:
+            return Action(action_type="classify_email", value=classification)
+        elif cycle == 1:
+            return Action(action_type="prioritize_email", value=priority)
+        elif cycle == 2:
+            return Action(action_type="route_email", value=route)
+        else:
+            reply = (
+                f"Hello, thank you for your email regarding '{email.subject}'. "
+                "We have received your message and our team will respond within 24 hours."
+            )
+            return Action(action_type="generate_reply", value=reply)
 
 
 class MockClient:
-    def __init__(self) -> None:
-        self._step = 0
+    def __init__(self, task_id: str = "easy") -> None:
+        self._task_id = task_id
 
     def get_action(self, obs) -> Action:
-        action = _MOCK_SEQUENCE[self._step % len(_MOCK_SEQUENCE)]
-        self._step += 1
-        return action
+        return _smart_action(obs, self._task_id)
 
 
 # ---------------------------------------------------------------------------
@@ -225,8 +278,8 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.dry_run:
-        mock = MockClient()
         for task_id in TASKS:
+            mock = MockClient(task_id=task_id)
             run_task_dry(mock, task_id)
         return
 
