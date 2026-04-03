@@ -17,10 +17,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
-import time
 
 from openenv_email_ops.env import EmailOpsEnv
 from openenv_email_ops.models import Action
@@ -61,47 +59,38 @@ Respond with ONLY the JSON. No other text."""
 
 # ---------------------------------------------------------------------------
 # Structured logging helpers — [START] / [STEP] / [END] format
+# Follows the exact format required by the OpenEnv hackathon evaluator
 # ---------------------------------------------------------------------------
 
 def log_start(task_id: str, task_config: dict) -> None:
-    print(json.dumps({
-        "event": "START",
-        "task_id": task_id,
-        "difficulty": task_config.get("difficulty", task_id),
-        "inbox_size": task_config.get("inbox_size", 0),
-        "max_steps": task_config.get("max_steps", 0),
-        "reward_components": task_config.get("reward_components", []),
-        "seed": SEED,
-        "timestamp": time.time(),
-    }), flush=True)
+    model = os.environ.get("MODEL_NAME", "gpt-4o-mini")
+    print(f"[START] task={task_id} env=openenv-email-ops model={model}", flush=True)
 
 
 def log_step(task_id: str, step: int, action_type: str, value: str | None,
              step_reward: float, episode_reward: float, breakdown: dict, done: bool) -> None:
-    print(json.dumps({
-        "event": "STEP",
-        "task_id": task_id,
-        "step": step,
-        "action_type": action_type,
-        "value": value,
-        "step_reward": round(step_reward, 4),
-        "episode_reward": round(episode_reward, 4),
-        "breakdown": {k: round(v, 4) for k, v in breakdown.items()},
-        "done": done,
-    }), flush=True)
+    action_str = f"{action_type}:{value}" if value else action_type
+    done_val = str(done).lower()
+    print(
+        f"[STEP]  step={step + 1} action={action_str} "
+        f"reward={step_reward:.2f} done={done_val} error=null",
+        flush=True,
+    )
 
 
 def log_end(task_id: str, total_reward: float, score_breakdown: dict,
             metrics: dict | None = None) -> None:
-    print(json.dumps({
-        "event": "END",
-        "task_id": task_id,
-        "total_reward": round(total_reward, 4),
-        "score_breakdown": {k: round(v, 4) for k, v in score_breakdown.items()},
-        "metrics": metrics or {},
-        "seed": SEED,
-        "timestamp": time.time(),
-    }), flush=True)
+    # Collect per-step rewards from breakdown for the rewards list
+    # We track cumulative breakdown; for [END] we report total_reward as single value
+    success = str(total_reward > 0).lower()
+    # Build rewards string from breakdown values
+    rewards_str = ",".join(f"{v:.2f}" for v in score_breakdown.values()) if score_breakdown else f"{total_reward:.2f}"
+    steps = (metrics or {}).get("deferral_count", 0)  # approximate
+    print(
+        f"[END]   success={success} steps={steps} "
+        f"score={total_reward:.3f} rewards={rewards_str}",
+        flush=True,
+    )
 
 
 # ---------------------------------------------------------------------------

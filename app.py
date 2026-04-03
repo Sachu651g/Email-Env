@@ -40,6 +40,11 @@ def root():
     return {"name": "openenv-email-ops", "version": "1.0.0", "status": "running"}
 
 
+@api.get("/health")
+def health():
+    return {"status": "healthy"}
+
+
 @api.post("/reset")
 def reset(seed: int = 42):
     obs = _env.reset(seed=seed)
