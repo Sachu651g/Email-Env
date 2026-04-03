@@ -8,3 +8,4 @@ dist/
 build/
 .env
 hf_space_clone/
+.kiro/
