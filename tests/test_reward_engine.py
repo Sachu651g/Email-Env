@@ -142,7 +142,7 @@ def test_easy_task_reward_components():
     tracker = MemoryTracker()
     email = make_email()
 
-    # Correct classification → +0.2
+    # Correct classification → +0.4 (updated from +0.2)
     reward = engine.score_step(
         Action(action_type="classify_email", value="important"),
         email,
@@ -151,7 +151,7 @@ def test_easy_task_reward_components():
         step_count=0,
     )
     assert "classification" in reward.breakdown
-    assert reward.breakdown["classification"] == pytest.approx(0.2)
+    assert reward.breakdown["classification"] == pytest.approx(0.4)
 
     # Prioritization not in EASY → no prioritization key
     reward2 = engine.score_step(

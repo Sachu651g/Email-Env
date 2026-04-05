@@ -20,6 +20,7 @@ class Email(BaseModel):
     sender_type: Literal["customer", "spammer", "VIP", "internal"]
     urgency_score: float
     ground_truth: GroundTruth
+    dominant_intent: str | None = None  # Used for hard-task reply scoring
 
     @field_validator("urgency_score")
     @classmethod

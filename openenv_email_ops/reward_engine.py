@@ -20,9 +20,43 @@ _prioritization_grader = PrioritizationGrader()
 _routing_grader = RoutingGrader()
 _reply_grader = ReplyGrader()
 
+# Valid values per action type — used for invalid-action penalty
+_VALID_VALUES: dict[str, set[str]] = {
+    "classify_email": {"spam", "important", "promotion"},
+    "prioritize_email": {"low", "medium", "high"},
+    "route_email": {"support", "sales", "escalation"},
+}
+
+# Coherent (classification, route) pairs for hard-task reasoning consistency
+_COHERENT_PAIRS: set[tuple[str, str]] = {
+    ("important", "escalation"),
+    ("important", "sales"),
+    ("important", "support"),
+    ("spam", "support"),
+    ("promotion", "sales"),
+}
+
 
 class RewardEngine:
     """Computes step rewards and episode-level adjustments."""
+
+    def _check_reasoning_consistency(
+        self, email_id: str, memory_tracker: MemoryTracker
+    ) -> float:
+        """Return +0.15 for coherent classify→route pair, -0.15 for contradictory, 0.0 otherwise."""
+        actions = {
+            a.action_type: (a.value or "").strip().lower()
+            for a, _ in memory_tracker._history.get(email_id, [])
+        }
+        classification = actions.get("classify_email")
+        route = actions.get("route_email")
+        if not classification or not route:
+            return 0.0
+        if classification == "spam" and route == "escalation":
+            return -0.15
+        if (classification, route) in _COHERENT_PAIRS:
+            return 0.15
+        return 0.0
 
     def score_step(
         self,
@@ -41,6 +75,20 @@ class RewardEngine:
         breakdown: dict[str, float] = {}
         total = 0.0
 
+        # --- invalid-action penalty (checked before graders) ---
+        if action.action_type in _VALID_VALUES:
+            val = (action.value or "").strip().lower()
+            if val not in _VALID_VALUES[action.action_type]:
+                breakdown["invalid_action"] = -0.1
+                return Reward(step_reward=-0.1, episode_reward=0.0, breakdown=breakdown)
+
+        # --- repetition penalty ---
+        prior_actions = memory_tracker._history.get(email.id, [])
+        is_duplicate = any(a.action_type == action.action_type for a, _ in prior_actions)
+        if is_duplicate:
+            breakdown["repetition_penalty"] = -0.1
+            total += -0.1
+
         # --- classify_email ---
         if action.action_type == "classify_email":
             if "classification" in components:
@@ -50,13 +98,25 @@ class RewardEngine:
                         action.value or "",
                         email.ground_truth.correct_classification,
                     )
-                    score = 0.2 if raw == 1.0 else -0.2
+                    # 1.0 → +0.4, 0.5 (adjacent) → +0.2, 0.0 → -0.2
+                    if raw == 1.0:
+                        score = 0.4
+                    elif raw == 0.0:
+                        score = -0.2
+                    else:
+                        score = raw * 0.4
                 except Exception:
                     logger.warning(
                         "ClassificationGrader raised an unexpected error; defaulting to 0.0"
                     )
                 breakdown["classification"] = score
                 total += score
+
+            # --- consistency penalty (context memory) ---
+            history = memory_tracker.get_classification_history(email.sender_type)
+            if len(history) >= 2 and history[-1] != history[-2]:
+                breakdown["consistency_penalty"] = -0.1
+                total += -0.1
 
         # --- prioritize_email ---
         elif action.action_type == "prioritize_email":
@@ -97,7 +157,10 @@ class RewardEngine:
             if "reply" in components:
                 score = 0.0
                 try:
-                    raw = _reply_grader.score(action.value or "", email)
+                    if task_config.difficulty == "hard":
+                        raw = _reply_grader.score_hard(action.value or "", email)
+                    else:
+                        raw = _reply_grader.score(action.value or "", email)
                     score = raw * 0.2
                 except Exception:
                     logger.warning(
@@ -115,6 +178,17 @@ class RewardEngine:
         if step_count <= 1:
             breakdown["efficiency_bonus"] = 0.1
             total += 0.1
+
+        # --- hard-task reasoning consistency (after all 4 action types applied) ---
+        if task_config.difficulty == "hard":
+            email_actions = {a.action_type for a, _ in memory_tracker._history.get(email.id, [])}
+            all_four = {"classify_email", "prioritize_email", "route_email", "generate_reply"}
+            if all_four.issubset(email_actions):
+                consistency = self._check_reasoning_consistency(email.id, memory_tracker)
+                if consistency != 0.0:
+                    key = "reasoning_consistency_bonus" if consistency > 0 else "reasoning_consistency_penalty"
+                    breakdown[key] = consistency
+                    total += consistency
 
         return Reward(step_reward=total, episode_reward=0.0, breakdown=breakdown)
 
@@ -200,5 +274,23 @@ class RewardEngine:
                         break
         except Exception:
             logger.warning("Error computing early classification bonus; skipping")
+
+        # Context memory consistency bonus: +0.2 per sender_type where all classifications
+        # were correct and consistent throughout the episode
+        try:
+            # Build ground-truth lookup: sender_type -> correct_classification
+            gt_by_sender: dict[str, str] = {}
+            for email in inbox:
+                gt_by_sender[email.sender_type] = email.ground_truth.correct_classification
+
+            for sender_type, history in memory_tracker.get_all_classification_histories().items():
+                if len(history) >= 2 and len(set(history)) == 1:
+                    expected = gt_by_sender.get(sender_type)
+                    if expected and history[0] == expected:
+                        bonus_key = f"consistency_bonus_{sender_type}"
+                        breakdown[bonus_key] = 0.2
+                        total += 0.2
+        except Exception:
+            logger.warning("Error computing context memory consistency bonus; skipping")
 
         return total, breakdown

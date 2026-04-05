@@ -67,7 +67,7 @@ class EmailOpsEnv:
         self._episode_reward = 0.0
 
         # Generate inbox
-        inbox = self._inbox_generator.generate(self._inbox_size, self._seed)
+        inbox = self._inbox_generator.generate(self._inbox_size, self._seed, difficulty=self._task_config.difficulty)
 
         # Create episode manager
         self._episode_manager = EpisodeManager(inbox, self._max_steps)
@@ -90,7 +90,7 @@ class EmailOpsEnv:
         # Record action in memory tracker
         step_count = self._episode_manager.step_count
         if current_email is not None:
-            self._memory_tracker.record_action(current_email.id, action, step_count)
+            self._memory_tracker.record_action(current_email.id, action, step_count, sender_type=current_email.sender_type)
 
         # Score the step
         reward = self._reward_engine.score_step(
@@ -120,6 +120,7 @@ class EmailOpsEnv:
 
         # Accumulate episode reward
         self._episode_reward += reward.step_reward
+        self._episode_reward = max(-1.0, min(1.0, self._episode_reward))
 
         # Advance or defer
         if action.action_type == "defer_email" and current_email is not None:
@@ -148,6 +149,9 @@ class EmailOpsEnv:
                 episode_reward=self._episode_reward,
             )
             self._episode_reward += adjustment
+            self._episode_reward = max(-1.0, min(1.0, self._episode_reward))
+            # Normalize final episode score to [0.0, 1.0] for OpenEnv compliance
+            self._episode_reward = max(0.0, min(1.0, self._episode_reward))
             self._metrics_tracker.record_reward(self._episode_reward)
             info["metrics"] = self._metrics_tracker.get_metrics()
             info["delayed_rewards"] = delayed_rewards

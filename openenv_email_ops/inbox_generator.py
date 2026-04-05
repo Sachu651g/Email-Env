@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import random
 import uuid
 from typing import Literal
@@ -192,6 +193,97 @@ _TEMPLATES: dict[str, list[dict]] = {
 }
 
 # ---------------------------------------------------------------------------
+# Hard-task email pool: ambiguous / multi-intent emails with conflicting signals
+# Each template has urgency >= 0.7 but priority "medium" or "low" (conflicting),
+# a multi-intent subject, and a dominant_intent field for reply grading.
+# ---------------------------------------------------------------------------
+
+HARD_EMAIL_POOL: list[dict] = [
+    {
+        "subject": "Refund request and product question",
+        "body": (
+            "URGENT: I need an immediate refund for my last order — the item arrived broken. "
+            "Also, while I have you, can you tell me if the new model supports Bluetooth? "
+            "I'm considering a replacement purchase."
+        ),
+        "urgency": 0.8,
+        "classification": "important",
+        "priority": "medium",
+        "route": "support",
+        "dominant_intent": "refund",
+    },
+    {
+        "subject": "Critical feedback and partnership inquiry",
+        "body": (
+            "I must say, your latest update has caused serious disruptions to our workflow — "
+            "this is completely unacceptable and needs to be fixed immediately. "
+            "That said, we are also exploring a potential partnership opportunity and would "
+            "love to schedule a call with your business development team."
+        ),
+        "urgency": 0.75,
+        "classification": "important",
+        "priority": "medium",
+        "route": "support",
+        "dominant_intent": "feedback",
+    },
+    {
+        "subject": "Account suspension notice and upgrade request",
+        "body": (
+            "I received a notice that my account has been suspended, which is extremely urgent "
+            "and needs to be resolved right away. Additionally, I wanted to ask about upgrading "
+            "to the premium plan — can you send me the pricing details?"
+        ),
+        "urgency": 0.85,
+        "classification": "important",
+        "priority": "low",
+        "route": "support",
+        "dominant_intent": "account suspension",
+    },
+    {
+        "subject": "Re: Invoice dispute — also interested in new features",
+        "body": (
+            "Following up on my previous email about the incorrect invoice amount. "
+            "This is time-sensitive as our accounting team needs to close the books by Friday. "
+            "On a separate note, I saw your announcement about the new analytics dashboard — "
+            "we would be very interested in a demo."
+        ),
+        "urgency": 0.78,
+        "classification": "important",
+        "priority": "medium",
+        "route": "sales",
+        "dominant_intent": "invoice dispute",
+    },
+    {
+        "subject": "Urgent: Service outage report and feature suggestion",
+        "body": (
+            "Our entire team has been unable to access the platform for the past two hours — "
+            "this is causing significant business impact and must be escalated immediately. "
+            "While I have your attention, I also wanted to suggest adding a bulk export feature "
+            "to the reporting module, which would save us a lot of time."
+        ),
+        "urgency": 0.92,
+        "classification": "important",
+        "priority": "low",
+        "route": "escalation",
+        "dominant_intent": "service outage",
+    },
+    {
+        "subject": "Fwd: Complaint about delivery AND loyalty rewards question",
+        "body": (
+            "I am very disappointed — my order was supposed to arrive three days ago and "
+            "I still haven't received it. This is completely unacceptable. "
+            "By the way, I also noticed my loyalty points haven't been updated in two months. "
+            "Can you look into both issues?"
+        ),
+        "urgency": 0.72,
+        "classification": "important",
+        "priority": "medium",
+        "route": "support",
+        "dominant_intent": "delivery complaint",
+    },
+]
+
+# ---------------------------------------------------------------------------
 # Noise injection helpers
 # ---------------------------------------------------------------------------
 
@@ -294,15 +386,41 @@ _SENDER_TYPES: list[Literal["customer", "spammer", "VIP", "internal"]] = [
 class InboxGenerator:
     """Generates a seeded, reproducible list of Email objects with noise."""
 
-    def generate(self, size: int, seed: int) -> list[Email]:
+    def generate(self, size: int, seed: int, difficulty: str = "easy") -> list[Email]:
         """Generate *size* emails deterministically from *seed*.
 
         When size >= 4, guarantees at least one email of each sender_type.
+        When difficulty == "hard", at least 40% of emails are drawn from
+        HARD_EMAIL_POOL (with dominant_intent populated).
         """
         rng = random.Random(seed)
         emails: list[Email] = []
 
-        if size >= 4:
+        if difficulty == "hard":
+            hard_count = max(1, math.ceil(size * 0.4))
+            normal_count = size - hard_count
+
+            # Draw hard-pool emails
+            for _ in range(hard_count):
+                template = rng.choice(HARD_EMAIL_POOL)
+                emails.append(self._make_hard_email(template, rng))
+
+            # Fill remaining from normal pool
+            if normal_count >= 4:
+                guaranteed = list(_SENDER_TYPES)
+                rng.shuffle(guaranteed)
+                for sender_type in guaranteed:
+                    emails.append(self._make_email(sender_type, rng))
+                for _ in range(normal_count - 4):
+                    sender_type = rng.choice(_SENDER_TYPES)
+                    emails.append(self._make_email(sender_type, rng))
+            else:
+                for _ in range(normal_count):
+                    sender_type = rng.choice(_SENDER_TYPES)
+                    emails.append(self._make_email(sender_type, rng))
+
+            rng.shuffle(emails)
+        elif size >= 4:
             # Build guaranteed set (one per sender_type), then shuffle it
             guaranteed = list(_SENDER_TYPES)
             rng.shuffle(guaranteed)
@@ -351,4 +469,28 @@ class InboxGenerator:
             sender_type=sender_type,
             urgency_score=round(urgency_score, 4),
             ground_truth=ground_truth,
+        )
+
+    def _make_hard_email(self, template: dict, rng: random.Random) -> Email:
+        """Construct an Email from a HARD_EMAIL_POOL template with dominant_intent set."""
+        subject, body = _apply_noise(template["subject"], template["body"], rng)
+
+        base_urgency: float = template["urgency"]
+        jitter = rng.uniform(-0.05, 0.05)
+        urgency_score = max(0.0, min(1.0, base_urgency + jitter))
+
+        ground_truth = GroundTruth(
+            correct_classification=template["classification"],
+            correct_priority=template["priority"],
+            correct_route=template["route"],
+        )
+
+        return Email(
+            id=_make_uuid(rng),
+            subject=subject,
+            body=body,
+            sender_type="customer",  # hard emails are always customer-type
+            urgency_score=round(urgency_score, 4),
+            ground_truth=ground_truth,
+            dominant_intent=template.get("dominant_intent"),
         )

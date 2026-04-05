@@ -2,15 +2,15 @@
 inference.py — openenv-email-ops baseline inference script
 
 Reads environment variables:
-  API_BASE_URL  — OpenAI-compatible API endpoint (default: https://api.openai.com/v1)
-  MODEL_NAME    — model identifier (default: gpt-4o-mini)
-  OPENAI_API_KEY — API key
-  HF_TOKEN      — Hugging Face token (optional, for HF-hosted models)
+  API_BASE_URL      — OpenAI-compatible API endpoint (default: https://api.openai.com/v1)
+  MODEL_NAME        — model identifier (default: gpt-4o-mini)
+  HF_TOKEN          — Hugging Face / API key (required, no default)
+  LOCAL_IMAGE_NAME  — optional, docker image name when running locally
 
 Emits structured stdout logs in [START] / [STEP] / [END] format for automated scoring.
 
 Usage:
-  python inference.py              # live mode (requires API key)
+  python inference.py              # live mode (requires HF_TOKEN)
   python inference.py --dry-run   # mock mode, no API calls
 """
 
@@ -78,14 +78,10 @@ def log_step(task_id: str, step: int, action_type: str, value: str | None,
     )
 
 
-def log_end(task_id: str, total_reward: float, score_breakdown: dict,
-            metrics: dict | None = None) -> None:
-    # Collect per-step rewards from breakdown for the rewards list
-    # We track cumulative breakdown; for [END] we report total_reward as single value
+def log_end(task_id: str, total_reward: float, rewards: list[float],
+            steps: int, metrics: dict | None = None) -> None:
     success = str(total_reward > 0).lower()
-    # Build rewards string from breakdown values
-    rewards_str = ",".join(f"{v:.2f}" for v in score_breakdown.values()) if score_breakdown else f"{total_reward:.2f}"
-    steps = (metrics or {}).get("deferral_count", 0)  # approximate
+    rewards_str = "[" + ",".join(f"{r:.2f}" for r in rewards) + "]"
     print(
         f"[END]   success={success} steps={steps} "
         f"score={total_reward:.3f} rewards={rewards_str}",
@@ -190,7 +186,7 @@ def run_task_live(client, model_name: str, task_id: str) -> None:
     obs = env.reset(seed=SEED)
     done = False
     total_reward = 0.0
-    score_breakdown: dict[str, float] = {}
+    step_rewards: list[float] = []
     step_num = 0
     final_info: dict = {}
 
@@ -211,8 +207,7 @@ def run_task_live(client, model_name: str, task_id: str) -> None:
 
         obs, reward, done, info = env.step(action)
         total_reward = reward.episode_reward
-        for k, v in reward.breakdown.items():
-            score_breakdown[k] = score_breakdown.get(k, 0.0) + v
+        step_rewards.append(reward.step_reward)
         if done:
             final_info = info
 
@@ -220,7 +215,7 @@ def run_task_live(client, model_name: str, task_id: str) -> None:
                  reward.step_reward, reward.episode_reward, reward.breakdown, done)
         step_num += 1
 
-    log_end(task_id, total_reward, score_breakdown, final_info.get("metrics"))
+    log_end(task_id, total_reward, step_rewards, step_num, final_info.get("metrics"))
 
 
 def run_task_dry(mock: MockClient, task_id: str) -> None:
@@ -236,7 +231,7 @@ def run_task_dry(mock: MockClient, task_id: str) -> None:
     obs = env.reset(seed=SEED)
     done = False
     total_reward = 0.0
-    score_breakdown: dict[str, float] = {}
+    step_rewards: list[float] = []
     step_num = 0
     final_info: dict = {}
 
@@ -244,8 +239,7 @@ def run_task_dry(mock: MockClient, task_id: str) -> None:
         action = mock.get_action(obs)
         obs, reward, done, info = env.step(action)
         total_reward = reward.episode_reward
-        for k, v in reward.breakdown.items():
-            score_breakdown[k] = score_breakdown.get(k, 0.0) + v
+        step_rewards.append(reward.step_reward)
         if done:
             final_info = info
 
@@ -253,7 +247,7 @@ def run_task_dry(mock: MockClient, task_id: str) -> None:
                  reward.step_reward, reward.episode_reward, reward.breakdown, done)
         step_num += 1
 
-    log_end(task_id, total_reward, score_breakdown, final_info.get("metrics"))
+    log_end(task_id, total_reward, step_rewards, step_num, final_info.get("metrics"))
 
 
 # ---------------------------------------------------------------------------
@@ -275,13 +269,13 @@ def main() -> None:
     # Live mode
     from openai import OpenAI
 
-    api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("HF_TOKEN")
-    if not api_key:
-        print("Error: OPENAI_API_KEY or HF_TOKEN environment variable is not set.", file=sys.stderr)
-        sys.exit(1)
-
     api_base = os.environ.get("API_BASE_URL", "https://api.openai.com/v1")
     model_name = os.environ.get("MODEL_NAME", "gpt-4o-mini")
+    api_key = os.environ.get("HF_TOKEN") or os.environ.get("OPENAI_API_KEY")
+
+    if not api_key:
+        print("Error: HF_TOKEN environment variable is not set.", file=sys.stderr)
+        sys.exit(1)
 
     client = OpenAI(api_key=api_key, base_url=api_base)
 

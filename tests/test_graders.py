@@ -78,11 +78,12 @@ def test_classification_correct_reward():
 
 @pytest.mark.unit
 def test_classification_incorrect_penalty():
-    """Wrong prediction returns 0.0 (maps to -0.2 reward)."""
+    """Wrong prediction returns 0.0 (maps to -0.2 reward); adjacent returns 0.5."""
     grader = ClassificationGrader()
     assert grader.score("spam", "important") == 0.0
     assert grader.score("promotion", "spam") == 0.0
-    assert grader.score("important", "promotion") == 0.0
+    # "important" is adjacent to "promotion" → partial credit 0.5
+    assert grader.score("important", "promotion") == 0.5
 
 
 @pytest.mark.unit
@@ -98,31 +99,32 @@ def test_reply_grader_criteria():
     grader = ReplyGrader()
     email = _make_email(subject="Invoice payment overdue")
 
-    # All 4 criteria met → 1.0
-    full_reply = "Hello, I wanted to follow up on the invoice payment that is overdue."
+    # All 5 criteria met → 1.0
+    # Need: >= 30 chars, greeting, keyword, no placeholder, >= 80 chars
+    full_reply = "Hello, I wanted to follow up on the invoice payment that is overdue. We will process it right away and keep you updated on the status."
     assert grader.score(full_reply, email) == 1.0
 
-    # Criterion 1 fails: reply too short (< 20 chars)
-    short_reply = "Hi, invoice."  # has greeting + keyword + no placeholder, but < 20 chars
+    # Criterion 1 fails: reply too short (< 30 chars), also fails criterion 5 (< 80 chars)
+    short_reply = "Hi, invoice."  # has greeting + keyword + no placeholder, but < 30 chars
     score_short = grader.score(short_reply, email)
-    assert score_short == 0.75  # 3 out of 4
+    assert score_short == pytest.approx(0.6)  # criteria 2,3,4 met (3 of 5)
 
     # Criterion 2 fails: no greeting
-    no_greeting = "I wanted to follow up on the invoice payment that is overdue today."
+    no_greeting = "I wanted to follow up on the invoice payment that is overdue today and will ensure it is resolved promptly for you."
     score_no_greeting = grader.score(no_greeting, email)
-    assert score_no_greeting == 0.75  # length ok, keyword ok, no placeholder
+    assert score_no_greeting == 0.8  # length>=30, keyword, no placeholder, length>=80
 
     # Criterion 3 fails: no subject keyword in reply
-    no_keyword = "Hello, please let me know if you need any assistance with your request."
+    no_keyword = "Hello, please let me know if you need any assistance with your request. We are happy to help you resolve this matter quickly and efficiently."
     score_no_kw = grader.score(no_keyword, email)
-    assert score_no_kw == 0.75  # length ok, greeting ok, no placeholder
+    assert score_no_kw == 0.8  # length>=30, greeting, no placeholder, length>=80
 
     # Criterion 4 fails: contains placeholder
-    placeholder_reply = "Hello, please pay the invoice by [DATE] or contact [NAME] for help."
+    placeholder_reply = "Hello, please pay the invoice by [DATE] or contact [NAME] for help with the overdue invoice payment issue that you raised."
     score_placeholder = grader.score(placeholder_reply, email)
-    assert score_placeholder == 0.75  # length ok, greeting ok, keyword ok
+    assert score_placeholder == 0.8  # length>=30, greeting, keyword, length>=80
 
-    # All 4 criteria fail → 0.0
+    # All 5 criteria fail → 0.0
     bad_reply = "TODO [NAME]"
     assert grader.score(bad_reply, email) == 0.0
 
@@ -132,8 +134,8 @@ def test_reply_grader_empty_reply():
     grader = ReplyGrader()
     email = _make_email()
     score = grader.score("", email)
-    # Empty: no length, no greeting, no keyword, but also no placeholder → 0.25
-    assert score == 0.25
+    # Empty: no length, no greeting, no keyword, but also no placeholder → 0.2 (criterion 4 only)
+    assert score == 0.2
 
 
 @pytest.mark.unit
@@ -141,6 +143,9 @@ def test_prioritization_grader():
     grader = PrioritizationGrader()
     assert grader.score("high", "high") == 1.0
     assert grader.score("low", "high") == 0.0
+    # Adjacent levels return 0.5
+    assert grader.score("medium", "high") == 0.5
+    assert grader.score("medium", "low") == 0.5
 
 
 @pytest.mark.unit
