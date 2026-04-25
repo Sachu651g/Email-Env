@@ -315,6 +315,10 @@ def run_oversight_demo(seed: int = 42, difficulty: str = "easy") -> str:
         accuracy = (total_correct_detections / max(1, total_violations_found)) * 100 \
                    if total_violations_found > 0 else 100.0
 
+        # Pre-compute timeline HTML to avoid backslash-in-f-string SyntaxError (Python < 3.12)
+        _no_actions_html = '<div style="color:#475569;font-size:12px">No actions taken yet</div>'
+        _timeline_html = "".join(timeline_rows) if timeline_rows else _no_actions_html
+
         # Data source label — honest about what is shown
         data_note = (
             "<span style='color:#34d399;font-size:10px;font-family:monospace;font-weight:700'>✓ LIVE ENV DATA</span>"
@@ -369,7 +373,7 @@ def run_oversight_demo(seed: int = 42, difficulty: str = "easy") -> str:
             f"border-top:1px solid rgba(99,102,241,.1)'>"
             f"<div style='font-size:10px;color:#6366f1;font-weight:700;letter-spacing:1.5px;margin-bottom:10px'>"
             f"DETECTION TIMELINE \u2014 REAL REWARD SIGNALS</div>"
-            f"{''.join(timeline_rows) if timeline_rows else '<div style=\"color:#475569;font-size:12px\">No actions taken yet</div>'}"
+            f"{_timeline_html}"
             f"</div>"
             # footer
             f"<div style='padding:10px 20px;background:rgba(99,102,241,.05);"
