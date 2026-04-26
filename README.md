@@ -29,8 +29,7 @@ tags:
 | 🤗 HF Space (live demo) | https://huggingface.co/spaces/sachingunagi66/openenv-email-ops |
 | 💻 GitHub | https://github.com/Sachu651g/AI-Oversight-Inspector |
 | 📓 Colab training notebook | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Sachu651g/AI-Oversight-Inspector/blob/main/round2_oversight_inspector/colab_train_oversight.ipynb) |
-| 📝 Blog post (HuggingFace) | *(Coming soon - publish `round2_oversight_inspector/BLOG_POST.md`)* |
-| 🎥 Demo video (YouTube) | *(Coming soon - < 2 min demo)* |
+| 📝 Blog post (HuggingFace) | https://huggingface.co/spaces/sachingunagi66/openenv-email-ops/blob/main/BLOG_POST.md |
 
 ---
 
