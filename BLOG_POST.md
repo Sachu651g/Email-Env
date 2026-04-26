@@ -228,7 +228,6 @@ print(state.observation)  # The documents to audit
 | 🤗 HF Space (Live Env) | [sachingunagi66/openenv-email-ops](https://huggingface.co/spaces/sachingunagi66/openenv-email-ops) |
 | 💻 GitHub | [Sachu651g/AI-Oversight-Inspector](https://github.com/Sachu651g/AI-Oversight-Inspector) |
 | 📓 Colab Notebook | *(add your link)* |
-| 🎥 Demo Video (<2 min) | *(add your YouTube link)* |
 | 📊 W&B Training Run | *(add your W&B link)* |
 
 ---
