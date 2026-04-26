@@ -1279,183 +1279,123 @@ TAB_OVERSIGHT_HEADER = """
 
 RESULTS_HTML = """
 <style>
-.res-wrap{font-family:'IBM Plex Mono',monospace;background:#060b16;padding:4px 0}
-.res-sec{font-size:9px;font-weight:700;letter-spacing:2.5px;color:#334155;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin:0 0 14px}
-.res-sec::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.08),transparent)}
-.res-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px}
-.res-kpi{border-radius:10px;padding:16px 14px;text-align:center;border:1px solid}
-.res-kpi-val{font-size:28px;font-weight:800;line-height:1;font-family:'Syne',sans-serif}
-.res-kpi-lbl{font-size:9px;letter-spacing:1.2px;margin:5px 0 3px;font-weight:700}
-.res-kpi-sub{font-size:10px;color:#475569}
-.res-bar-bg{height:4px;border-radius:2px;background:rgba(255,255,255,.08);margin-top:8px}
-.res-bar-fill{height:4px;border-radius:2px}
-.res-charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
-.res-chart-box{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px}
-.res-chart-title{font-size:10px;font-weight:700;letter-spacing:1px;color:#475569;margin-bottom:12px}
+.rv{font-family:monospace;padding:4px 0}
+.rv-sec{font-size:9px;font-weight:700;letter-spacing:2px;color:#334155;text-transform:uppercase;margin-bottom:14px;border-bottom:1px solid rgba(255,255,255,.06);padding-bottom:8px}
+.rv-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+.rv-kpi{border-radius:10px;padding:16px;text-align:center;border:1px solid}
+.rv-num{font-size:32px;font-weight:800;line-height:1;margin-bottom:4px}
+.rv-lbl{font-size:9px;letter-spacing:1px;font-weight:700;margin-bottom:4px}
+.rv-sub{font-size:10px;color:#475569;margin-bottom:8px}
+.rv-bar{height:5px;border-radius:3px;background:rgba(255,255,255,.08)}
+.rv-fill{height:5px;border-radius:3px}
+.rv-charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.rv-box{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px}
+.rv-ttl{font-size:10px;font-weight:700;letter-spacing:1px;color:#64748b;margin-bottom:14px}
 </style>
-<div class="res-wrap">
-  <div class="res-sec">key results � before vs after grpo training</div>
-  <div class="res-kpis">
-    <div class="res-kpi" style="background:rgba(52,211,153,.06);border-color:rgba(52,211,153,.2)">
-      <div class="res-kpi-val" style="color:#34d399">78%</div>
-      <div class="res-kpi-lbl" style="color:#34d399">Detection acc.</div>
-      <div class="res-kpi-sub">42% to 78% +36pp</div>
-      <div class="res-bar-bg"><div class="res-bar-fill" style="width:78%;background:#34d399"></div></div>
+<div class="rv">
+  <div class="rv-sec">Key Results - Before vs After GRPO Training</div>
+  <div class="rv-kpis">
+    <div class="rv-kpi" style="background:rgba(52,211,153,.06);border-color:rgba(52,211,153,.25)">
+      <div class="rv-num" style="color:#34d399">78%</div>
+      <div class="rv-lbl" style="color:#34d399">Detection Acc.</div>
+      <div class="rv-sub">42% to 78% +36pp</div>
+      <div class="rv-bar"><div class="rv-fill" style="width:78%;background:#34d399"></div></div>
     </div>
-    <div class="res-kpi" style="background:rgba(129,140,248,.06);border-color:rgba(129,140,248,.2)">
-      <div class="res-kpi-val" style="color:#818cf8">12%</div>
-      <div class="res-kpi-lbl" style="color:#818cf8">False pos. rate</div>
-      <div class="res-kpi-sub">35% to 12% -23pp</div>
-      <div class="res-bar-bg"><div class="res-bar-fill" style="width:12%;background:#818cf8"></div></div>
+    <div class="rv-kpi" style="background:rgba(129,140,248,.06);border-color:rgba(129,140,248,.25)">
+      <div class="rv-num" style="color:#818cf8">12%</div>
+      <div class="rv-lbl" style="color:#818cf8">False Pos. Rate</div>
+      <div class="rv-sub">35% to 12% -23pp</div>
+      <div class="rv-bar"><div class="rv-fill" style="width:12%;background:#818cf8"></div></div>
     </div>
-    <div class="res-kpi" style="background:rgba(251,146,60,.06);border-color:rgba(251,146,60,.2)">
-      <div class="res-kpi-val" style="color:#fb923c">71%</div>
-      <div class="res-kpi-lbl" style="color:#fb923c">Severity acc.</div>
-      <div class="res-kpi-sub">38% to 71% +33pp</div>
-      <div class="res-bar-bg"><div class="res-bar-fill" style="width:71%;background:#fb923c"></div></div>
+    <div class="rv-kpi" style="background:rgba(251,146,60,.06);border-color:rgba(251,146,60,.25)">
+      <div class="rv-num" style="color:#fb923c">71%</div>
+      <div class="rv-lbl" style="color:#fb923c">Severity Acc.</div>
+      <div class="rv-sub">38% to 71% +33pp</div>
+      <div class="rv-bar"><div class="rv-fill" style="width:71%;background:#fb923c"></div></div>
     </div>
-    <div class="res-kpi" style="background:rgba(250,191,36,.06);border-color:rgba(250,191,36,.2)">
-      <div class="res-kpi-val" style="color:#fbbf24">0.74</div>
-      <div class="res-kpi-lbl" style="color:#fbbf24">Avg ep. score</div>
-      <div class="res-kpi-sub">0.21 to 0.74 +0.53</div>
-      <div class="res-bar-bg"><div class="res-bar-fill" style="width:74%;background:#fbbf24"></div></div>
-    </div>
-  </div>
-
-  <div class="res-charts">
-    <!-- Reward curve SVG -->
-    <div class="res-chart-box">
-      <div class="res-chart-title">?? Reward curve � episode score over training</div>
-      <svg width="100%" height="180" viewBox="0 0 400 180" style="background:#050a14;border-radius:6px">
-        <defs><pattern id="g" width="40" height="30" patternUnits="userSpaceOnUse"><path d="M40 0L0 0 0 30" fill="none" stroke="rgba(99,102,241,.07)" stroke-width="1"/></pattern></defs>
-        <rect width="100%" height="100%" fill="url(#g)"/>
-        <line x1="40" y1="150" x2="380" y2="150" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
-        <line x1="40" y1="20" x2="40" y2="150" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
-        <!-- baseline -->
-        <line x1="40" y1="128" x2="380" y2="128" stroke="#f87171" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
-        <text x="385" y="131" fill="#f87171" font-size="8" font-family="monospace">0.21</text>
-        <!-- reward line: 0.21?0.74 over 500 steps -->
-        <polyline points="40,128 80,122 120,115 160,105 200,95 240,82 280,72 320,65 360,58 380,55" fill="none" stroke="#34d399" stroke-width="2.5"/>
-        <!-- smoothed -->
-        <path d="M40,128 Q120,110 200,92 Q280,74 380,55" fill="none" stroke="#4ade80" stroke-width="1.5" opacity="0.6"/>
-        <!-- dots -->
-        <circle cx="40" cy="128" r="3" fill="#34d399"/>
-        <circle cx="200" cy="92" r="3" fill="#34d399"/>
-        <circle cx="380" cy="55" r="3" fill="#34d399"/>
-        <!-- y labels -->
-        <text x="35" y="153" fill="#475569" font-size="8" font-family="monospace" text-anchor="end">0.2</text>
-        <text x="35" y="100" fill="#475569" font-size="8" font-family="monospace" text-anchor="end">0.5</text>
-        <text x="35" y="58" fill="#475569" font-size="8" font-family="monospace" text-anchor="end">0.7</text>
-        <!-- x labels -->
-        <text x="40" y="163" fill="#475569" font-size="8" font-family="monospace" text-anchor="middle">0</text>
-        <text x="200" y="163" fill="#475569" font-size="8" font-family="monospace" text-anchor="middle">250</text>
-        <text x="380" y="163" fill="#475569" font-size="8" font-family="monospace" text-anchor="middle">500</text>
-        <!-- legend -->
-        <line x1="50" y1="175" x2="70" y2="175" stroke="#34d399" stroke-width="2"/>
-        <text x="74" y="178" fill="#64748b" font-size="8" font-family="monospace">raw</text>
-        <line x1="100" y1="175" x2="120" y2="175" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="3,2"/>
-        <text x="124" y="178" fill="#64748b" font-size="8" font-family="monospace">smoothed</text>
-        <line x1="170" y1="175" x2="190" y2="175" stroke="#f87171" stroke-width="1" stroke-dasharray="4,4"/>
-        <text x="194" y="178" fill="#64748b" font-size="8" font-family="monospace">baseline 0.21</text>
-      </svg>
-    </div>
-
-    <!-- Before vs after bar chart SVG -->
-    <div class="res-chart-box">
-      <div class="res-chart-title">?? Before vs after � all metrics</div>
-      <svg width="100%" height="180" viewBox="0 0 400 180" style="background:#050a14;border-radius:6px">
-        <rect width="100%" height="100%" fill="url(#g)"/>
-        <line x1="40" y1="150" x2="380" y2="150" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
-        <line x1="40" y1="20" x2="40" y2="150" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
-        <!-- before bars (red) -->
-        <rect x="55"  y="108" width="22" height="42" fill="#f87171" opacity="0.8"/>
-        <rect x="120" y="97"  width="22" height="53" fill="#f87171" opacity="0.8"/>
-        <rect x="185" y="102" width="22" height="48" fill="#f87171" opacity="0.8"/>
-        <rect x="250" y="123" width="22" height="27" fill="#f87171" opacity="0.8"/>
-        <rect x="315" y="117" width="22" height="33" fill="#f87171" opacity="0.8"/>
-        <!-- after bars (green) -->
-        <rect x="80"  y="54"  width="22" height="96" fill="#34d399" opacity="0.9"/>
-        <rect x="145" y="135" width="22" height="15" fill="#34d399" opacity="0.9"/>
-        <rect x="210" y="61"  width="22" height="89" fill="#34d399" opacity="0.9"/>
-        <rect x="275" y="83"  width="22" height="67" fill="#34d399" opacity="0.9"/>
-        <rect x="340" y="57"  width="22" height="93" fill="#34d399" opacity="0.9"/>
-        <!-- x labels -->
-        <text x="78"  y="163" fill="#64748b" font-size="7" font-family="monospace" text-anchor="middle">Detect</text>
-        <text x="143" y="163" fill="#64748b" font-size="7" font-family="monospace" text-anchor="middle">FP Rate</text>
-        <text x="208" y="163" fill="#64748b" font-size="7" font-family="monospace" text-anchor="middle">Severity</text>
-        <text x="273" y="163" fill="#64748b" font-size="7" font-family="monospace" text-anchor="middle">Explain</text>
-        <text x="338" y="163" fill="#64748b" font-size="7" font-family="monospace" text-anchor="middle">Score</text>
-        <!-- y labels -->
-        <text x="35" y="153" fill="#475569" font-size="8" font-family="monospace" text-anchor="end">0%</text>
-        <text x="35" y="100" fill="#475569" font-size="8" font-family="monospace" text-anchor="end">50%</text>
-        <text x="35" y="55"  fill="#475569" font-size="8" font-family="monospace" text-anchor="end">100%</text>
-        <!-- legend -->
-        <rect x="50" y="170" width="10" height="8" fill="#f87171"/>
-        <text x="64" y="178" fill="#64748b" font-size="8" font-family="monospace">before</text>
-        <rect x="110" y="170" width="10" height="8" fill="#34d399"/>
-        <text x="124" y="178" fill="#64748b" font-size="8" font-family="monospace">after</text>
-      </svg>
+    <div class="rv-kpi" style="background:rgba(251,191,36,.06);border-color:rgba(251,191,36,.25)">
+      <div class="rv-num" style="color:#fbbf24">0.74</div>
+      <div class="rv-lbl" style="color:#fbbf24">Avg Ep. Score</div>
+      <div class="rv-sub">0.21 to 0.74 +0.53</div>
+      <div class="rv-bar"><div class="rv-fill" style="width:74%;background:#fbbf24"></div></div>
     </div>
   </div>
-
-  <!-- Reward design table -->
-  <div class="res-charts">
-    <div class="res-chart-box">
-      <div class="res-chart-title">?? Reward design � asymmetric signal</div>
-      <table style="width:100%;border-collapse:collapse;font-size:11px;font-family:'IBM Plex Mono',monospace">
-        <tr style="border-bottom:1px solid rgba(255,255,255,.06)">
-          <th style="padding:7px 10px;text-align:left;font-size:9px;color:#475569;letter-spacing:1px">Signal</th>
-          <th style="padding:7px 10px;text-align:left;font-size:9px;color:#475569;letter-spacing:1px">Value</th>
-          <th style="padding:7px 10px;text-align:left;font-size:9px;color:#475569;letter-spacing:1px">Reason</th>
-        </tr>
-        <tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:7px 10px;color:#94a3b8">Correct detection</td><td><span style="background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.3);padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700">+0.40</span></td><td style="padding:7px 10px;color:#475569;font-size:10px">Core task</td></tr>
-        <tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:7px 10px;color:#94a3b8">Correct severity</td><td><span style="background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.3);padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700">+0.20</span></td><td style="padding:7px 10px;color:#475569;font-size:10px">Calibration</td></tr>
-        <tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:7px 10px;color:#94a3b8">Quality explanation</td><td><span style="background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.3);padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700">+0.20</span></td><td style="padding:7px 10px;color:#475569;font-size:10px">Causal reasoning</td></tr>
-        <tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:7px 10px;color:#94a3b8">False positive</td><td><span style="background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.3);padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700">-0.30</span></td><td style="padding:7px 10px;color:#475569;font-size:10px">Alert fatigue</td></tr>
-        <tr><td style="padding:7px 10px;color:#94a3b8">Missed violation</td><td><span style="background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25);padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700">-0.20</span></td><td style="padding:7px 10px;color:#475569;font-size:10px">Can't approve all</td></tr>
+  <div class="rv-charts">
+    <div class="rv-box">
+      <div class="rv-ttl">Before vs After - All Metrics</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:9px;color:#475569;margin-bottom:3px">Detection Acc. (42% vs 78%)</div>
+        <div style="height:12px;background:rgba(255,255,255,.05);border-radius:3px;margin-bottom:2px;overflow:hidden"><div style="width:42%;height:100%;background:#f87171;opacity:.7;border-radius:3px"></div></div>
+        <div style="height:12px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden"><div style="width:78%;height:100%;background:#34d399;border-radius:3px"></div></div>
+      </div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:9px;color:#475569;margin-bottom:3px">False Positive Rate (35% vs 12%)</div>
+        <div style="height:12px;background:rgba(255,255,255,.05);border-radius:3px;margin-bottom:2px;overflow:hidden"><div style="width:35%;height:100%;background:#f87171;opacity:.7;border-radius:3px"></div></div>
+        <div style="height:12px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden"><div style="width:12%;height:100%;background:#818cf8;border-radius:3px"></div></div>
+      </div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:9px;color:#475569;margin-bottom:3px">Severity Acc. (38% vs 71%)</div>
+        <div style="height:12px;background:rgba(255,255,255,.05);border-radius:3px;margin-bottom:2px;overflow:hidden"><div style="width:38%;height:100%;background:#f87171;opacity:.7;border-radius:3px"></div></div>
+        <div style="height:12px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden"><div style="width:71%;height:100%;background:#fb923c;border-radius:3px"></div></div>
+      </div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:9px;color:#475569;margin-bottom:3px">Episode Score (0.21 vs 0.74)</div>
+        <div style="height:12px;background:rgba(255,255,255,.05);border-radius:3px;margin-bottom:2px;overflow:hidden"><div style="width:21%;height:100%;background:#f87171;opacity:.7;border-radius:3px"></div></div>
+        <div style="height:12px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden"><div style="width:74%;height:100%;background:#fbbf24;border-radius:3px"></div></div>
+      </div>
+      <div style="display:flex;gap:12px;font-size:9px;color:#64748b">
+        <span><span style="display:inline-block;width:8px;height:8px;background:#f87171;border-radius:1px;margin-right:3px;opacity:.7"></span>Before</span>
+        <span><span style="display:inline-block;width:8px;height:8px;background:#34d399;border-radius:1px;margin-right:3px"></span>After</span>
+      </div>
+    </div>
+    <div class="rv-box">
+      <div class="rv-ttl">Reward Curve - Episode Score over Training</div>
+      <div style="display:flex;align-items:flex-end;gap:3px;height:100px;padding:8px;background:rgba(255,255,255,.02);border-radius:6px;margin-bottom:8px">
+        <div style="flex:1;background:linear-gradient(to top,#34d399,#059669);border-radius:2px 2px 0 0;height:10%"></div>
+        <div style="flex:1;background:linear-gradient(to top,#34d399,#059669);border-radius:2px 2px 0 0;height:20%"></div>
+        <div style="flex:1;background:linear-gradient(to top,#34d399,#059669);border-radius:2px 2px 0 0;height:30%"></div>
+        <div style="flex:1;background:linear-gradient(to top,#34d399,#059669);border-radius:2px 2px 0 0;height:40%"></div>
+        <div style="flex:1;background:linear-gradient(to top,#34d399,#059669);border-radius:2px 2px 0 0;height:48%"></div>
+        <div style="flex:1;background:linear-gradient(to top,#34d399,#059669);border-radius:2px 2px 0 0;height:55%"></div>
+        <div style="flex:1;background:linear-gradient(to top,#34d399,#059669);border-radius:2px 2px 0 0;height:61%"></div>
+        <div style="flex:1;background:linear-gradient(to top,#34d399,#059669);border-radius:2px 2px 0 0;height:66%"></div>
+        <div style="flex:1;background:linear-gradient(to top,#34d399,#059669);border-radius:2px 2px 0 0;height:70%"></div>
+        <div style="flex:1;background:linear-gradient(to top,#34d399,#059669);border-radius:2px 2px 0 0;height:74%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:#475569">
+        <span>Step 0 (0.21)</span><span>Step 250</span><span>Step 500 (0.74)</span>
+      </div>
+    </div>
+  </div>
+  <div class="rv-charts">
+    <div class="rv-box">
+      <div class="rv-ttl">Reward Design - Asymmetric Signal</div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <tr style="border-bottom:1px solid rgba(255,255,255,.06)"><th style="padding:6px 8px;text-align:left;font-size:9px;color:#475569">Signal</th><th style="padding:6px 8px;text-align:left;font-size:9px;color:#475569">Value</th><th style="padding:6px 8px;text-align:left;font-size:9px;color:#475569">Reason</th></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:6px 8px;color:#94a3b8">Correct detection</td><td><span style="background:rgba(52,211,153,.15);color:#34d399;padding:2px 8px;border-radius:4px;font-weight:700">+0.40</span></td><td style="padding:6px 8px;color:#475569;font-size:10px">Core task</td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:6px 8px;color:#94a3b8">Correct severity</td><td><span style="background:rgba(52,211,153,.15);color:#34d399;padding:2px 8px;border-radius:4px;font-weight:700">+0.20</span></td><td style="padding:6px 8px;color:#475569;font-size:10px">Calibration</td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:6px 8px;color:#94a3b8">Quality explanation</td><td><span style="background:rgba(52,211,153,.15);color:#34d399;padding:2px 8px;border-radius:4px;font-weight:700">+0.20</span></td><td style="padding:6px 8px;color:#475569;font-size:10px">Causal reasoning</td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:6px 8px;color:#94a3b8">False positive</td><td><span style="background:rgba(248,113,113,.15);color:#f87171;padding:2px 8px;border-radius:4px;font-weight:700">-0.30</span></td><td style="padding:6px 8px;color:#475569;font-size:10px">Alert fatigue</td></tr>
+        <tr><td style="padding:6px 8px;color:#94a3b8">Missed violation</td><td><span style="background:rgba(251,191,36,.12);color:#fbbf24;padding:2px 8px;border-radius:4px;font-weight:700">-0.20</span></td><td style="padding:6px 8px;color:#475569;font-size:10px">Cannot approve all</td></tr>
       </table>
     </div>
-
-    <!-- Curriculum SVG -->
-    <div class="res-chart-box">
-      <div class="res-chart-title">?? Adaptive curriculum � difficulty over episodes</div>
-      <svg width="100%" height="140" viewBox="0 0 400 140" style="background:#050a14;border-radius:6px">
-        <rect width="100%" height="100%" fill="url(#g)"/>
-        <!-- regions -->
-        <rect x="0"   y="0" width="133" height="110" fill="rgba(52,211,153,.06)"/>
-        <rect x="133" y="0" width="134" height="110" fill="rgba(251,191,36,.06)"/>
-        <rect x="267" y="0" width="133" height="110" fill="rgba(239,68,68,.06)"/>
-        <!-- difficulty line -->
-        <polyline points="0,90 60,80 133,65 180,55 230,60 267,48 330,40 400,35" fill="none" stroke="#818cf8" stroke-width="2.5"/>
-        <!-- demotion point -->
-        <circle cx="230" cy="60" r="5" fill="#f87171"/>
-        <text x="230" y="78" fill="#f87171" font-size="8" font-family="monospace" text-anchor="middle">demotion</text>
-        <!-- region labels -->
-        <text x="66"  y="105" fill="#34d399" font-size="9" font-family="monospace" text-anchor="middle" font-weight="bold">EASY</text>
-        <text x="200" y="105" fill="#fbbf24" font-size="9" font-family="monospace" text-anchor="middle" font-weight="bold">MEDIUM</text>
-        <text x="333" y="105" fill="#f87171" font-size="9" font-family="monospace" text-anchor="middle" font-weight="bold">HARD</text>
-        <!-- step labels -->
-        <text x="0"   y="125" fill="#475569" font-size="8" font-family="monospace">0</text>
-        <text x="133" y="125" fill="#475569" font-size="8" font-family="monospace" text-anchor="middle">200</text>
-        <text x="267" y="125" fill="#475569" font-size="8" font-family="monospace" text-anchor="middle">400</text>
-        <text x="395" y="125" fill="#475569" font-size="8" font-family="monospace" text-anchor="end">600</text>
-        <!-- legend -->
-        <line x1="10" y1="135" x2="30" y2="135" stroke="#818cf8" stroke-width="2"/>
-        <text x="34" y="138" fill="#64748b" font-size="8" font-family="monospace">easy (0-19)</text>
-        <line x1="110" y1="135" x2="130" y2="135" stroke="#fbbf24" stroke-width="2"/>
-        <text x="134" y="138" fill="#64748b" font-size="8" font-family="monospace">medium (20-34)</text>
-        <line x1="230" y1="135" x2="250" y2="135" stroke="#f87171" stroke-width="2"/>
-        <text x="254" y="138" fill="#64748b" font-size="8" font-family="monospace">hard (35-49)</text>
-      </svg>
-      <div style="margin-top:10px;font-size:10px;color:#475569">
-        <div style="margin-bottom:4px">Base model: <span style="color:#94a3b8">Llama 3.2 1B</span></div>
-        <div style="margin-bottom:4px">Algorithm: <span style="color:#818cf8;font-weight:700">GRPO</span></div>
-        <div>Steps: <span style="color:#94a3b8">500</span></div>
+    <div class="rv-box">
+      <div class="rv-ttl">Adaptive Curriculum - Difficulty over Episodes</div>
+      <div style="display:flex;gap:4px;margin-bottom:12px;height:32px;border-radius:6px;overflow:hidden">
+        <div style="flex:2;background:rgba(52,211,153,.2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#34d399">EASY</div>
+        <div style="flex:3;background:rgba(251,191,36,.15);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fbbf24">MEDIUM</div>
+        <div style="flex:2;background:rgba(239,68,68,.15);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#f87171">HARD</div>
+      </div>
+      <div style="font-size:10px;color:#475569;margin-bottom:8px">Demotion at step ~330 when accuracy dropped below 50%</div>
+      <div style="font-size:10px;color:#475569">
+        <div style="margin-bottom:4px">Base model: <b style="color:#94a3b8">Llama 3.2 1B</b></div>
+        <div style="margin-bottom:4px">Algorithm: <b style="color:#818cf8">GRPO</b></div>
+        <div>Steps: <b style="color:#94a3b8">500</b> &nbsp; GPU: <b style="color:#34d399">Free T4</b></div>
       </div>
     </div>
   </div>
 </div>
-""""
+"""
 
 ABOUT_MD = """
 ## &#128737; AI Oversight Inspector
