@@ -494,10 +494,15 @@ input[type=range] { accent-color: #6366f1 !important; }
 
 HERO = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Syne:wght@700;800&display=swap');
-.hero{position:relative;background:linear-gradient(135deg,#0a0f1a 0%,#0d1f3c 40%,#080c18 100%);border:1px solid rgba(99,102,241,.2);border-radius:16px;padding:32px 36px 28px;margin-bottom:6px;overflow:hidden}
-.hero::before{content:'';position:absolute;top:-60px;right:-60px;width:280px;height:280px;background:radial-gradient(circle,rgba(79,70,229,.18) 0%,transparent 65%);pointer-events:none}
-.hero::after{content:'';position:absolute;bottom:-40px;left:30%;width:200px;height:200px;background:radial-gradient(circle,rgba(5,150,105,.12) 0%,transparent 65%);pointer-events:none}
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap');
+/* ── hero wrapper ── */
+.hero{position:relative;background:linear-gradient(135deg,#0a0f1a 0%,#0d1f3c 40%,#080c18 100%);border:1px solid rgba(99,102,241,.2);border-radius:16px;overflow:hidden;margin-bottom:6px}
+@keyframes heroGlow{0%,100%{box-shadow:0 0 40px rgba(99,102,241,.08)}50%{box-shadow:0 0 80px rgba(99,102,241,.18),0 0 120px rgba(52,211,153,.06)}}
+.hero{animation:heroGlow 5s ease-in-out infinite}
+/* ── canvas viz ── */
+#hero-net{display:block;width:100%;height:220px;cursor:default}
+/* ── content below canvas ── */
+.hero-body{padding:24px 32px 28px}
 .hero-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;letter-spacing:2.5px;color:#4f46e5;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .hero-eyebrow::before{content:'';display:inline-block;width:24px;height:2px;background:linear-gradient(90deg,#4f46e5,transparent)}
 .hero-title{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#f1f5f9;line-height:1.15;margin:0 0 6px;letter-spacing:-1px}
@@ -515,12 +520,7 @@ HERO = """
 .pill-link.gh{color:#e2e8f0;border-color:rgba(226,232,240,.15);background:rgba(226,232,240,.05)}
 .pill-link.hf{color:#fbbf24;border-color:rgba(251,191,36,.2);background:rgba(251,191,36,.06)}
 .pill-link:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.3)}
-.pipeline{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px 20px;display:flex;align-items:center;flex-wrap:wrap;gap:4px}
-.pipe-node{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 14px;text-align:center;min-width:92px}
-.pipe-node-icon{font-size:16px;display:block;margin-bottom:2px}
-.pipe-node-label{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#e2e8f0;letter-spacing:.3px}
-.pipe-node-sub{font-size:9px;color:#475569;margin-top:1px;letter-spacing:.2px}
-.pipe-arrow{color:rgba(99,102,241,.5);font-size:16px;padding:0 2px;flex-shrink:0}
+/* ── stat cards ── */
 .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:20px}
 .stat-card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px 16px;text-align:center;position:relative;overflow:hidden;transition:border-color .2s,transform .2s}
 .stat-card:hover{border-color:rgba(99,102,241,.25);transform:translateY(-2px)}
@@ -532,47 +532,154 @@ HERO = """
 .stat-num{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;line-height:1}
 .stat-label{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#475569;letter-spacing:1px;margin-top:4px;text-transform:uppercase}
 .stat-delta{font-size:11px;color:#64748b;margin-top:3px}
-.section-label{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;letter-spacing:2px;color:#334155;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin:16px 0 8px}
-.section-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.06),transparent)}
+/* ── canvas label overlay ── */
+.net-label{position:absolute;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;letter-spacing:1px;color:#475569;pointer-events:none}
 </style>
+
 <div class="hero">
-  <div class="hero-eyebrow">Meta x Hugging Face OpenEnv Hackathon 2026 &mdash; Grand Finale</div>
-  <h1 class="hero-title">Who watches<br>the <em>AI agents?</em></h1>
-  <p class="hero-sub">This system trains an LLM to act as an <b>autonomous oversight inspector</b> &mdash;
-  monitoring a fleet of enterprise agents and detecting violations
-  <b>without ever seeing ground truth.</b>
-  Trained via GRPO on Llama-3.2-1B &middot; Adaptive curriculum &middot; 800 steps.</p>
-  <div class="badge-row">
-    <span class="badge badge-indigo">&#127942; OpenEnv Compliant</span>
-    <span class="badge badge-green">&#9889; GRPO &middot; Unsloth</span>
-    <span class="badge badge-purple">&#128737; AI Safety &middot; Scalable Oversight</span>
-    <span class="badge badge-amber">&#127891; Adaptive Curriculum</span>
+  <!-- Animated neural network canvas -->
+  <div style="position:relative">
+    <canvas id="hero-net"></canvas>
+    <div style="position:absolute;top:12px;left:16px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(99,102,241,.7)">LIVE AGENT NETWORK</div>
+    <div style="position:absolute;top:12px;right:16px;display:flex;align-items:center;gap:6px">
+      <span style="width:6px;height:6px;border-radius:50%;background:#34d399;display:inline-block;animation:blink 1.4s ease-in-out infinite;box-shadow:0 0 6px #34d399"></span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#34d399;font-weight:700">MONITORING</span>
+    </div>
   </div>
-  <div class="pill-links">
-    <a class="pill-link gh" href="https://github.com/Sachu651g/AI-Oversight-Inspector" target="_blank">&#11088; GitHub</a>
-    <a class="pill-link hf" href="https://huggingface.co/spaces/sachingunagi66/openenv-email-ops" target="_blank">&#129303; HF Space</a>
-  </div>
-  <div class="section-label">How it works</div>
-  <div class="pipeline">
-    <div class="pipe-node"><span class="pipe-node-icon">&#128231;</span><div class="pipe-node-label">Email Fleet</div><div class="pipe-node-sub">4 AI agents</div></div>
-    <span class="pipe-arrow">&rarr;</span>
-    <div class="pipe-node"><span class="pipe-node-icon">&#128269;</span><div class="pipe-node-label">Classify</div><div class="pipe-node-sub">spam/vip/sales</div></div>
-    <span class="pipe-arrow">&rarr;</span>
-    <div class="pipe-node"><span class="pipe-node-icon">&#9889;</span><div class="pipe-node-label">Prioritize</div><div class="pipe-node-sub">low &rarr; critical</div></div>
-    <span class="pipe-arrow">&rarr;</span>
-    <div class="pipe-node"><span class="pipe-node-icon">&#128506;</span><div class="pipe-node-label">Route</div><div class="pipe-node-sub">support/escalate</div></div>
-    <span class="pipe-arrow">&rarr;</span>
-    <div class="pipe-node" style="border-color:rgba(99,102,241,.35);background:rgba(79,70,229,.08)"><span class="pipe-node-icon">&#128737;</span><div class="pipe-node-label" style="color:#a5b4fc">Overseer LLM</div><div class="pipe-node-sub" style="color:#4f46e5">no ground truth</div></div>
-    <span class="pipe-arrow">&rarr;</span>
-    <div class="pipe-node" style="border-color:rgba(52,211,153,.25);background:rgba(5,150,105,.06)"><span class="pipe-node-icon">&#128200;</span><div class="pipe-node-label" style="color:#34d399">GRPO Reward</div><div class="pipe-node-sub" style="color:#059669">0.455 &rarr; 0.881</div></div>
-  </div>
-  <div class="stat-row">
-    <div class="stat-card green"><div class="stat-num" style="color:#34d399">78%</div><div class="stat-label">Detection Acc.</div><div class="stat-delta">was 42% &uarr;+36pp</div></div>
-    <div class="stat-card blue"><div class="stat-num" style="color:#818cf8">12%</div><div class="stat-label">False Pos. Rate</div><div class="stat-delta">was 35% &darr;&minus;23pp</div></div>
-    <div class="stat-card amber"><div class="stat-num" style="color:#fbbf24">0.881</div><div class="stat-label">Eval Score</div><div class="stat-delta">post-training hard</div></div>
-    <div class="stat-card red"><div class="stat-num" style="color:#f87171">800</div><div class="stat-label">Train Steps</div><div class="stat-delta">Tesla T4 &middot; 2h 15m</div></div>
+
+  <!-- Hero content -->
+  <div class="hero-body">
+    <div class="hero-eyebrow">Meta x Hugging Face OpenEnv Hackathon 2026 &mdash; Grand Finale</div>
+    <h1 class="hero-title">Who watches<br>the <em>AI agents?</em></h1>
+    <p class="hero-sub">Trains an LLM to act as an <b>autonomous oversight inspector</b> &mdash;
+    monitoring enterprise agents and detecting violations
+    <b>without ever seeing ground truth.</b>
+    GRPO on Llama-3.2-1B &middot; Adaptive curriculum &middot; 800 steps.</p>
+    <div class="badge-row">
+      <span class="badge badge-indigo">&#127942; OpenEnv Compliant</span>
+      <span class="badge badge-green">&#9889; GRPO &middot; Unsloth</span>
+      <span class="badge badge-purple">&#128737; AI Safety &middot; Scalable Oversight</span>
+      <span class="badge badge-amber">&#127891; Adaptive Curriculum</span>
+    </div>
+    <div class="pill-links">
+      <a class="pill-link gh" href="https://github.com/Sachu651g/AI-Oversight-Inspector" target="_blank">&#11088; GitHub</a>
+      <a class="pill-link hf" href="https://huggingface.co/spaces/sachingunagi66/openenv-email-ops" target="_blank">&#129303; HF Space</a>
+    </div>
+    <div class="stat-row">
+      <div class="stat-card green"><div class="stat-num" style="color:#34d399">78%</div><div class="stat-label">Detection Acc.</div><div class="stat-delta">was 42% &uarr;+36pp</div></div>
+      <div class="stat-card blue"><div class="stat-num" style="color:#818cf8">12%</div><div class="stat-label">False Pos. Rate</div><div class="stat-delta">was 35% &darr;&minus;23pp</div></div>
+      <div class="stat-card amber"><div class="stat-num" style="color:#fbbf24">0.881</div><div class="stat-label">Eval Score</div><div class="stat-delta">post-training hard</div></div>
+      <div class="stat-card red"><div class="stat-num" style="color:#f87171">800</div><div class="stat-label">Train Steps</div><div class="stat-delta">Tesla T4 &middot; 2h 15m</div></div>
+    </div>
   </div>
 </div>
+
+<style>
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+
+<script>
+(function(){
+  function initNet(){
+    var c=document.getElementById('hero-net');
+    if(!c){setTimeout(initNet,200);return;}
+    var ctx=c.getContext('2d');
+    function resize(){
+      var r=c.parentElement.getBoundingClientRect();
+      c.width=r.width||800; c.height=220;
+    }
+    resize();
+    window.addEventListener('resize',function(){resize();buildNodes();});
+
+    // Node layers: [Inbox] -> [Classifier, Prioritizer, Router, Responder] -> [Overseer] -> [Flag, Approve]
+    var LAYERS=[
+      [{label:'\\u{1F4E7}\\nInbox',color:'#6366f1'}],
+      [{label:'\\u{1F50D}\\nClassify',color:'#fbbf24'},{label:'\\u26A1\\nPrioritize',color:'#fb923c'},{label:'\\u{1F5FA}\\nRoute',color:'#f87171'},{label:'\\u270D\\nRespond',color:'#c084fc'}],
+      [{label:'\\u{1F6E1}\\nOverseer',color:'#34d399',big:true}],
+      [{label:'\\u2713\\nApprove',color:'#4ade80'},{label:'\\u26A0\\nFlag',color:'#f87171'}]
+    ];
+    var xFracs=[0.08,0.32,0.65,0.88];
+    var nodes=[],edges=[],signals=[];
+
+    function buildNodes(){
+      nodes=[];edges=[];
+      var cw=c.width,ch=c.height;
+      LAYERS.forEach(function(layer,li){
+        layer.forEach(function(nd,ni){
+          var yf=layer.length===1?0.5:(ni+1)/(layer.length+1);
+          nodes.push({x:cw*xFracs[li],y:ch*yf,r:nd.big?18:12,color:nd.color,label:nd.label,layer:li,idx:ni,pulse:Math.random()*Math.PI*2,ps:0.025+Math.random()*0.015});
+        });
+      });
+      // edges between consecutive layers
+      var byLayer=[[],[],[],[]];
+      nodes.forEach(function(n){byLayer[n.layer].push(n);});
+      for(var li=0;li<3;li++){
+        byLayer[li].forEach(function(a){
+          byLayer[li+1].forEach(function(b){
+            edges.push({a:a,b:b,color:a.color});
+          });
+        });
+      }
+    }
+    buildNodes();
+
+    function spawnSignal(){
+      if(!edges.length)return;
+      var e=edges[Math.floor(Math.random()*edges.length)];
+      var cols=['#818cf8','#34d399','#fbbf24','#f87171','#c084fc'];
+      signals.push({e:e,t:0,spd:0.01+Math.random()*0.015,col:cols[Math.floor(Math.random()*cols.length)],r:2.5+Math.random()*2});
+    }
+    var spawnTimer=setInterval(spawnSignal,250);
+
+    function draw(){
+      ctx.clearRect(0,0,c.width,c.height);
+      // edges
+      edges.forEach(function(e){
+        ctx.beginPath();ctx.moveTo(e.a.x,e.a.y);ctx.lineTo(e.b.x,e.b.y);
+        ctx.strokeStyle=e.color;ctx.globalAlpha=0.12;ctx.lineWidth=1;ctx.stroke();
+      });
+      // signals
+      for(var i=signals.length-1;i>=0;i--){
+        var s=signals[i];s.t+=s.spd;
+        if(s.t>1){signals.splice(i,1);continue;}
+        var sx=s.e.a.x+(s.e.b.x-s.e.a.x)*s.t;
+        var sy=s.e.a.y+(s.e.b.y-s.e.a.y)*s.t;
+        var g=ctx.createRadialGradient(sx,sy,0,sx,sy,s.r*5);
+        g.addColorStop(0,s.col+'cc');g.addColorStop(1,s.col+'00');
+        ctx.beginPath();ctx.arc(sx,sy,s.r*5,0,Math.PI*2);
+        ctx.fillStyle=g;ctx.globalAlpha=0.5;ctx.fill();
+        ctx.beginPath();ctx.arc(sx,sy,s.r,0,Math.PI*2);
+        ctx.fillStyle=s.col;ctx.globalAlpha=1;ctx.fill();
+      }
+      // nodes
+      ctx.globalAlpha=1;
+      nodes.forEach(function(n){
+        n.pulse+=n.ps;
+        var glow=Math.sin(n.pulse)*0.5+0.5;
+        var gr=n.r+6+glow*8;
+        var g=ctx.createRadialGradient(n.x,n.y,n.r*0.4,n.x,n.y,gr);
+        g.addColorStop(0,n.color+'66');g.addColorStop(1,n.color+'00');
+        ctx.beginPath();ctx.arc(n.x,n.y,gr,0,Math.PI*2);
+        ctx.fillStyle=g;ctx.globalAlpha=0.8+glow*0.2;ctx.fill();
+        ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+        ctx.fillStyle='#060b16';ctx.globalAlpha=1;ctx.fill();
+        ctx.strokeStyle=n.color;ctx.lineWidth=1.5;
+        ctx.globalAlpha=0.7+glow*0.3;ctx.stroke();
+        // label
+        ctx.globalAlpha=0.75;ctx.fillStyle='#94a3b8';
+        ctx.font='bold 9px IBM Plex Mono,monospace';ctx.textAlign='center';
+        var lines=n.label.split('\\n');
+        lines.forEach(function(ln,li){ctx.fillText(ln,n.x,n.y+n.r+12+li*11);});
+      });
+      ctx.globalAlpha=1;
+      requestAnimationFrame(draw);
+    }
+    draw();
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initNet);}
+  else{initNet();}
+})();
+</script>
 """
 
 TAB_EMAIL_HEADER = """
