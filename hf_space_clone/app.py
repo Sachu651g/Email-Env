@@ -492,9 +492,241 @@ input[type=range] { accent-color: #6366f1 !important; }
 ::-webkit-scrollbar-thumb { background: rgba(99,102,241,.3); border-radius: 2px; }
 """
 
-SPLASH_HTML = """
+SPLASH_JS = """
+() => {
+  // Build splash HTML
+  const style = document.createElement('style');
+  style.textContent = `
+    #oi-splash{position:fixed;inset:0;z-index:99999;background:#04080f;overflow-y:auto;overflow-x:hidden;transition:opacity .7s ease}
+    #oi-splash.oi-exit{opacity:0;pointer-events:none}
+    #oi-splash-canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+    .oi-scan{position:fixed;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(99,102,241,.5),rgba(52,211,153,.4),transparent);animation:oi-scan 4s linear infinite;pointer-events:none;z-index:1}
+    @keyframes oi-scan{0%{top:0;opacity:0}3%{opacity:1}97%{opacity:1}100%{top:100%;opacity:0}}
+    .oi-inner{position:relative;z-index:2;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:48px 24px 64px}
+    .oi-eye{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;letter-spacing:3px;color:#4f46e5;text-transform:uppercase;margin-bottom:20px;opacity:0;animation:oi-up .6s ease .2s forwards}
+    .oi-title{font-size:clamp(40px,8vw,84px);font-weight:800;line-height:1.05;letter-spacing:-3px;text-align:center;margin-bottom:16px;opacity:0;animation:oi-up .7s ease .4s forwards}
+    .oi-g1{background:linear-gradient(90deg,#818cf8,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .oi-g2{background:linear-gradient(90deg,#34d399,#059669);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .oi-sub{font-size:16px;color:#475569;max-width:520px;text-align:center;line-height:1.7;margin-bottom:32px;opacity:0;animation:oi-up .7s ease .6s forwards}
+    .oi-badges{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-bottom:36px;opacity:0;animation:oi-up .6s ease .8s forwards}
+    .oi-badge{font-size:11px;font-weight:700;letter-spacing:.5px;padding:5px 14px;border-radius:20px;border:1px solid}
+    .oib1{color:#a5b4fc;border-color:rgba(99,102,241,.35);background:rgba(99,102,241,.1)}
+    .oib2{color:#34d399;border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.08)}
+    .oib3{color:#c084fc;border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.07)}
+    .oib4{color:#fbbf24;border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.07)}
+    .oi-net-card{width:100%;max-width:900px;background:rgba(255,255,255,.025);border:1px solid rgba(99,102,241,.2);border-radius:20px;overflow:hidden;margin-bottom:32px;opacity:0;animation:oi-up .7s ease 1s forwards;box-shadow:0 0 60px rgba(99,102,241,.1)}
+    .oi-net-hdr{padding:14px 20px;background:linear-gradient(90deg,rgba(99,102,241,.12),rgba(52,211,153,.06));border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px}
+    .oi-dot{width:10px;height:10px;border-radius:50%}
+    .oi-live{width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 6px #34d399;animation:oi-blink 1.4s ease-in-out infinite;margin-left:auto}
+    @keyframes oi-blink{0%,100%{opacity:1}50%{opacity:.3}}
+    #oi-net{display:block;width:100%;height:260px}
+    .oi-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;width:100%;max-width:900px;margin-bottom:32px;opacity:0;animation:oi-up .6s ease 1.2s forwards}
+    .oi-stat{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:18px;text-align:center;position:relative;overflow:hidden;transition:all .3s}
+    .oi-stat:hover{transform:translateY(-3px);border-color:rgba(99,102,241,.3)}
+    .oi-stat::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
+    .ois1::after{background:linear-gradient(90deg,transparent,#818cf8,transparent)}
+    .ois2::after{background:linear-gradient(90deg,transparent,#34d399,transparent)}
+    .ois3::after{background:linear-gradient(90deg,transparent,#fbbf24,transparent)}
+    .ois4::after{background:linear-gradient(90deg,transparent,#f87171,transparent)}
+    .oi-sv{font-size:34px;font-weight:800;line-height:1;margin-bottom:6px}
+    .oi-sl{font-size:10px;font-weight:700;letter-spacing:1.5px;color:#475569;text-transform:uppercase}
+    .oi-ss{font-size:10px;color:#334155;margin-top:4px}
+    .oi-agents-lbl{font-size:11px;font-weight:700;letter-spacing:2px;color:#6366f1;text-transform:uppercase;margin-bottom:12px;width:100%;max-width:900px;opacity:0;animation:oi-up .5s ease 1.3s forwards}
+    .oi-agents{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;width:100%;max-width:900px;margin-bottom:32px;opacity:0;animation:oi-up .6s ease 1.4s forwards}
+    .oi-agent{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px;transition:all .3s}
+    .oi-agent:hover{background:rgba(99,102,241,.07);border-color:rgba(99,102,241,.3);transform:translateY(-2px)}
+    .oi-ai{font-size:24px;margin-bottom:8px}
+    .oi-an{font-size:11px;font-weight:700;letter-spacing:1px;color:#94a3b8;text-transform:uppercase;margin-bottom:5px}
+    .oi-ad{font-size:12px;color:#475569;line-height:1.5}
+    .oi-cbar{height:3px;border-radius:2px;margin-top:10px;background:rgba(255,255,255,.06)}
+    .oi-cfill{height:100%;border-radius:2px}
+    .oi-ba-lbl{font-size:11px;font-weight:700;letter-spacing:2px;color:#6366f1;text-transform:uppercase;margin-bottom:12px;width:100%;max-width:900px;opacity:0;animation:oi-up .5s ease 1.5s forwards}
+    .oi-ba{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;max-width:900px;margin-bottom:36px;opacity:0;animation:oi-up .6s ease 1.6s forwards}
+    .oi-bac{border-radius:14px;padding:18px;border:1px solid}
+    .oi-before{background:rgba(127,29,29,.1);border-color:rgba(248,113,113,.2)}
+    .oi-after{background:rgba(5,46,22,.12);border-color:rgba(52,211,153,.2)}
+    .oi-blbl{font-size:10px;font-weight:700;letter-spacing:1.5px;margin-bottom:10px}
+    .oi-bq{font-size:13px;line-height:1.7;font-style:italic;color:#94a3b8;border-left:3px solid;padding-left:12px}
+    .oi-before .oi-bq{border-color:#f87171}
+    .oi-after .oi-bq{border-color:#34d399}
+    .oi-links{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:44px;opacity:0;animation:oi-up .6s ease 1.7s forwards}
+    .oi-lnk{font-size:12px;font-weight:700;letter-spacing:.5px;padding:10px 22px;border-radius:10px;text-decoration:none;border:1px solid;transition:all .25s;display:inline-block;color:inherit}
+    .oi-lnk:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+    .oi-gh{color:#e2e8f0 !important;border-color:rgba(226,232,240,.2);background:rgba(226,232,240,.05)}
+    .oi-hf{color:#fbbf24 !important;border-color:rgba(251,191,36,.25);background:rgba(251,191,36,.06)}
+    .oi-cl{color:#fb923c !important;border-color:rgba(251,146,60,.25);background:rgba(251,146,60,.06)}
+    .oi-enter-wrap{opacity:0;animation:oi-up .7s ease 1.9s forwards;text-align:center}
+    .oi-enter{font-size:15px;font-weight:700;letter-spacing:2px;padding:18px 56px;border-radius:12px;border:1px solid rgba(99,102,241,.5);background:linear-gradient(135deg,rgba(79,70,229,.25),rgba(5,150,105,.18));color:#e2e8f0;cursor:pointer;text-transform:uppercase;transition:all .3s;box-shadow:0 0 40px rgba(99,102,241,.2)}
+    .oi-enter:hover{background:linear-gradient(135deg,rgba(79,70,229,.45),rgba(5,150,105,.32));border-color:rgba(99,102,241,.9);transform:translateY(-3px);box-shadow:0 0 60px rgba(99,102,241,.4),0 10px 40px rgba(0,0,0,.5)}
+    .oi-hint{font-size:11px;color:#475569;letter-spacing:1px;margin-top:10px;font-family:'IBM Plex Mono',monospace}
+    @keyframes oi-up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+  `;
+  document.head.appendChild(style);
+
+  const splash = document.createElement('div');
+  splash.id = 'oi-splash';
+  splash.innerHTML = `
+    <canvas id="oi-splash-canvas"></canvas>
+    <div class="oi-scan"></div>
+    <div class="oi-inner">
+      <div class="oi-eye">Meta × Hugging Face OpenEnv Hackathon 2026 — Grand Finale</div>
+      <h1 class="oi-title"><span class="oi-g1">AI Oversight</span><br><span class="oi-g2">Inspector</span></h1>
+      <p class="oi-sub">Training an LLM to watch the <b style="color:#64748b">AI agents</b> — detecting violations <b style="color:#64748b">without ever seeing ground truth.</b> GRPO · Llama-3.2-1B · Adaptive Curriculum.</p>
+      <div class="oi-badges">
+        <span class="oi-badge oib1">🏆 OpenEnv Compliant</span>
+        <span class="oi-badge oib2">⚡ GRPO + Unsloth</span>
+        <span class="oi-badge oib3">🛡 AI Safety</span>
+        <span class="oi-badge oib4">🎓 Adaptive Curriculum</span>
+      </div>
+      <div class="oi-net-card">
+        <div class="oi-net-hdr">
+          <div class="oi-dot" style="background:#f87171"></div>
+          <div class="oi-dot" style="background:#fbbf24"></div>
+          <div class="oi-dot" style="background:#34d399"></div>
+          <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:#94a3b8;margin-left:8px">LIVE AGENT NETWORK — OVERSIGHT INSPECTOR MONITORING SUB-AGENT FLEET</span>
+          <div class="oi-live"></div>
+        </div>
+        <canvas id="oi-net"></canvas>
+      </div>
+      <div class="oi-stats">
+        <div class="oi-stat ois1"><div class="oi-sv" style="color:#818cf8">78%</div><div class="oi-sl">Detection Accuracy</div><div class="oi-ss">post-training · 500 steps</div></div>
+        <div class="oi-stat ois2"><div class="oi-sv" style="color:#34d399">12%</div><div class="oi-sl">False Positive Rate</div><div class="oi-ss">down from 35% baseline</div></div>
+        <div class="oi-stat ois3"><div class="oi-sv" style="color:#fbbf24">0.74</div><div class="oi-sl">Avg Episode Reward</div><div class="oi-ss">up from 0.21 baseline</div></div>
+        <div class="oi-stat ois4"><div class="oi-sv" style="color:#f87171">500</div><div class="oi-sl">Training Steps</div><div class="oi-ss">free T4 GPU · ~30 min</div></div>
+      </div>
+      <div class="oi-agents-lbl">Sub-Agent Fleet Being Monitored</div>
+      <div class="oi-agents">
+        <div class="oi-agent"><div class="oi-ai">🔍</div><div class="oi-an">Classifier</div><div class="oi-ad">Labels emails as spam, important, or routine</div><div class="oi-cbar"><div class="oi-cfill" style="width:82%;background:linear-gradient(90deg,#4f46e5,#818cf8)"></div></div></div>
+        <div class="oi-agent"><div class="oi-ai">⚡</div><div class="oi-an">Prioritizer</div><div class="oi-ad">Assigns urgency — VIP miss triggers −0.30 penalty</div><div class="oi-cbar"><div class="oi-cfill" style="width:71%;background:linear-gradient(90deg,#059669,#34d399)"></div></div></div>
+        <div class="oi-agent"><div class="oi-ai">🗺</div><div class="oi-an">Router</div><div class="oi-ad">Routes to correct team — critical must escalate</div><div class="oi-cbar"><div class="oi-cfill" style="width:68%;background:linear-gradient(90deg,#d97706,#fbbf24)"></div></div></div>
+        <div class="oi-agent"><div class="oi-ai">✍️</div><div class="oi-an">Responder</div><div class="oi-ad">Generates replies — hallucination detection critical</div><div class="oi-cbar"><div class="oi-cfill" style="width:65%;background:linear-gradient(90deg,#dc2626,#f87171)"></div></div></div>
+      </div>
+      <div class="oi-ba-lbl">Before vs After Training</div>
+      <div class="oi-ba">
+        <div class="oi-bac oi-before"><div class="oi-blbl" style="color:#f87171">⚠ Before Training — Reward: 0.21</div><div class="oi-bq">"This email may or may not have been generated by AI. It is difficult to determine without additional context. There could potentially be some concerns, but I cannot say for certain..."</div></div>
+        <div class="oi-bac oi-after"><div class="oi-blbl" style="color:#34d399">✓ After Training (GRPO, 500 steps) — Reward: 0.74</div><div class="oi-bq">"VIOLATION [HIGH]: Span — 'As per our policy...'. This paraphrases Policy §4.2 without attribution — documentation integrity violation. Confidence: 0.87."</div></div>
+      </div>
+      <div class="oi-links">
+        <a class="oi-lnk oi-gh" href="https://github.com/Sachu651g/AI-Oversight-Inspector" target="_blank">⭐ GitHub</a>
+        <a class="oi-lnk oi-hf" href="https://huggingface.co/spaces/sachingunagi66/openenv-email-ops" target="_blank">🤗 HF Space</a>
+        <a class="oi-lnk oi-cl" href="https://colab.research.google.com/github/Sachu651g/AI-Oversight-Inspector/blob/main/round2_oversight_inspector/colab_train_oversight.ipynb" target="_blank">▶ Colab</a>
+      </div>
+      <div class="oi-enter-wrap">
+        <button class="oi-enter" id="oi-enter-btn">Enter Dashboard →</button>
+        <div class="oi-hint">Click to explore the live environment</div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(splash);
+
+  // Enter button handler
+  document.getElementById('oi-enter-btn').addEventListener('click', function() {
+    splash.style.transition = 'opacity .7s ease';
+    splash.style.opacity = '0';
+    splash.style.pointerEvents = 'none';
+    setTimeout(function() { splash.style.display = 'none'; window.scrollTo(0,0); }, 750);
+  });
+
+  // Neural net canvas
+  setTimeout(function() {
+    const c = document.getElementById('oi-net');
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    let nodes = [], edges = [], signals = [];
+
+    function resize() {
+      const r = c.parentElement.getBoundingClientRect();
+      c.width = r.width || 800; c.height = 260;
+      nodes = []; edges = [];
+      const cw = c.width, ch = c.height;
+      const xF = [0.1,0.34,0.65,0.88];
+      const COLORS = ['#6366f1','#fbbf24','#34d399','#f87171'];
+      const LABELS = [['📧\\nInbox'],['🔍\\nClassify','⚡\\nPrioritize','🗺\\nRoute','✍️\\nRespond'],['🛡\\nOverseer'],['✓\\nApprove','⚠\\nFlag']];
+      const counts = [1,4,1,2];
+      counts.forEach(function(count,li){
+        for(let ni=0;ni<count;ni++){
+          const yf=count===1?0.5:(ni+1)/(count+1);
+          nodes.push({x:cw*xF[li],y:ch*yf,r:li===2?20:12,color:COLORS[li],label:LABELS[li][ni]||'',layer:li,pulse:Math.random()*Math.PI*2,ps:0.022+Math.random()*0.015});
+        }
+      });
+      const byL=[[],[],[],[]];
+      nodes.forEach(n=>byL[n.layer].push(n));
+      for(let li=0;li<3;li++) byL[li].forEach(a=>byL[li+1].forEach(b=>edges.push({a,b,color:a.color})));
+    }
+
+    setInterval(function(){
+      if(!edges.length) return;
+      const e=edges[Math.floor(Math.random()*edges.length)];
+      const cols=['#818cf8','#34d399','#fbbf24','#f87171','#c084fc'];
+      signals.push({e,t:0,spd:0.009+Math.random()*0.013,col:cols[Math.floor(Math.random()*cols.length)],r:2.5+Math.random()*2});
+    },220);
+
+    function draw(){
+      if(splash.style.display==='none') return;
+      const cw=c.width,ch=c.height;
+      ctx.clearRect(0,0,cw,ch);
+      edges.forEach(e=>{ctx.beginPath();ctx.moveTo(e.a.x,e.a.y);ctx.lineTo(e.b.x,e.b.y);ctx.strokeStyle=e.color;ctx.globalAlpha=0.13;ctx.lineWidth=1;ctx.stroke();});
+      for(let i=signals.length-1;i>=0;i--){
+        const s=signals[i];s.t+=s.spd;
+        if(s.t>1){signals.splice(i,1);continue;}
+        const x=s.e.a.x+(s.e.b.x-s.e.a.x)*s.t,y=s.e.a.y+(s.e.b.y-s.e.a.y)*s.t;
+        const g=ctx.createRadialGradient(x,y,0,x,y,s.r*5);
+        g.addColorStop(0,s.col+'bb');g.addColorStop(1,s.col+'00');
+        ctx.beginPath();ctx.arc(x,y,s.r*5,0,Math.PI*2);ctx.fillStyle=g;ctx.globalAlpha=0.5;ctx.fill();
+        ctx.beginPath();ctx.arc(x,y,s.r,0,Math.PI*2);ctx.fillStyle=s.col;ctx.globalAlpha=1;ctx.fill();
+      }
+      ctx.globalAlpha=1;
+      nodes.forEach(n=>{
+        n.pulse+=n.ps;
+        const glow=Math.sin(n.pulse)*0.5+0.5,gr=n.r+6+glow*9;
+        const g=ctx.createRadialGradient(n.x,n.y,n.r*0.4,n.x,n.y,gr);
+        g.addColorStop(0,n.color+'55');g.addColorStop(1,n.color+'00');
+        ctx.beginPath();ctx.arc(n.x,n.y,gr,0,Math.PI*2);ctx.fillStyle=g;ctx.globalAlpha=0.75+glow*0.25;ctx.fill();
+        ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fillStyle='#04080f';ctx.globalAlpha=1;ctx.fill();
+        ctx.strokeStyle=n.color;ctx.lineWidth=1.5;ctx.globalAlpha=0.65+glow*0.35;ctx.stroke();
+        ctx.globalAlpha=0.8;ctx.fillStyle='#94a3b8';ctx.font='bold 9px IBM Plex Mono,monospace';ctx.textAlign='center';
+        n.label.split('\\n').forEach((ln,li)=>ctx.fillText(ln,n.x,n.y+n.r+12+li*11));
+      });
+      ctx.globalAlpha=1;
+      requestAnimationFrame(draw);
+    }
+    resize();
+    window.addEventListener('resize',resize);
+    draw();
+
+    // bg particles
+    const sc=document.getElementById('oi-splash-canvas');
+    if(!sc) return;
+    const sctx=sc.getContext('2d');
+    let sw,sh;
+    const pts=[];
+    for(let i=0;i<90;i++) pts.push({x:Math.random(),y:Math.random(),vx:(Math.random()-.5)*0.00015,vy:(Math.random()-.5)*0.00015,r:Math.random()*1.3+0.3,a:Math.random()*0.3+0.08,c:['#6366f1','#34d399','#818cf8'][Math.floor(Math.random()*3)]});
+    function resizeSc(){sw=sc.width=window.innerWidth;sh=sc.height=window.innerHeight;}
+    resizeSc(); window.addEventListener('resize',resizeSc);
+    function drawBg(){
+      if(splash.style.display==='none') return;
+      sctx.clearRect(0,0,sw,sh);
+      pts.forEach(p=>{
+        p.x+=p.vx;p.y+=p.vy;
+        if(p.x<0)p.x=1;if(p.x>1)p.x=0;if(p.y<0)p.y=1;if(p.y>1)p.y=0;
+        sctx.beginPath();sctx.arc(p.x*sw,p.y*sh,p.r,0,Math.PI*2);sctx.fillStyle=p.c;sctx.globalAlpha=p.a;sctx.fill();
+      });
+      sctx.globalAlpha=1;
+      for(let i=0;i<pts.length;i++) for(let j=i+1;j<pts.length;j++){
+        const dx=(pts[i].x-pts[j].x)*sw,dy=(pts[i].y-pts[j].y)*sh,d=Math.sqrt(dx*dx+dy*dy);
+        if(d<130){sctx.beginPath();sctx.moveTo(pts[i].x*sw,pts[i].y*sh);sctx.lineTo(pts[j].x*sw,pts[j].y*sh);sctx.strokeStyle='#6366f1';sctx.globalAlpha=(1-d/130)*0.05;sctx.lineWidth=0.5;sctx.stroke();}
+      }
+      sctx.globalAlpha=1;
+      requestAnimationFrame(drawBg);
+    }
+    drawBg();
+  }, 300);
+}
+"""
+
+HERO = """
 <style>
-#oi-splash{position:fixed;inset:0;z-index:99999;background:#04080f;overflow-y:auto;overflow-x:hidden;transition:opacity .7s ease}
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap');
 #oi-splash.oi-exit{opacity:0;pointer-events:none}
 #oi-splash-canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
 .oi-scan{position:fixed;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(99,102,241,.5),rgba(52,211,153,.4),transparent);animation:oi-scan 4s linear infinite;pointer-events:none;z-index:1}
@@ -1331,8 +1563,7 @@ purely from reasoning about inputs, outputs, and explanations. **No ground truth
 """
 
 
-with gr.Blocks(title="AI Oversight Inspector · Meta × HF Hackathon 2026", css=CSS, theme=gr.themes.Base()) as demo_ui:
-    gr.HTML(SPLASH_HTML)
+with gr.Blocks(title="AI Oversight Inspector · Meta × HF Hackathon 2026", css=CSS, theme=gr.themes.Base(), js=SPLASH_JS) as demo_ui:
     gr.HTML(HERO)
     with gr.Tabs():
         with gr.Tab("\U0001f4ec EmailOpsEnv"):
