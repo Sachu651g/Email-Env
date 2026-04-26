@@ -6,8 +6,8 @@
 | Resource | Link |
 |---|---|
 | 🤗 HF Space (live demo) | https://huggingface.co/spaces/sachingunagi66/openenv-email-ops |
-| 💻 GitHub | https://github.com/Sachu651g/Email-Env |
-| 📓 Colab notebook | [Open in Colab](https://colab.research.google.com/github/Sachu651g/Email-Env/blob/main/round2/colab_train_oversight.ipynb) |
+| 💻 GitHub | https://github.com/Sachu651g/AI-Oversight-Inspector |
+| 📓 Colab notebook | [Open in Colab](https://colab.research.google.com/github/Sachu651g/AI-Oversight-Inspector/blob/main/round2_oversight_inspector/colab_train_oversight.ipynb) |
 | 🎥 Demo video | *(link your YouTube video here)* |
 
 ---
@@ -129,7 +129,7 @@ We built the training environment to solve it — an open, reproducible, OpenEnv
 
 The environment is live at [huggingface.co/spaces/sachingunagi66/openenv-email-ops](https://huggingface.co/spaces/sachingunagi66/openenv-email-ops).
 
-The code is at [github.com/Sachu651g/Email-Env](https://github.com/Sachu651g/Email-Env).
+The code is at [github.com/Sachu651g/AI-Oversight-Inspector](https://github.com/Sachu651g/AI-Oversight-Inspector).
 
 ---
 

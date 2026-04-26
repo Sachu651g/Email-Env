@@ -20,7 +20,7 @@ tags:
 **Meta × Hugging Face OpenEnv Hackathon 2026 — Grand Finale Submission**
 
 > This is the Hugging Face Space deployment of the openenv-email-ops project.
-> For full documentation, training results, and project details, see the [main README](../README.md) or [GitHub](https://github.com/Sachu651g/Email-Env).
+> For full documentation, training results, and project details, see the [main README](../README.md) or [GitHub](https://github.com/Sachu651g/AI-Oversight-Inspector).
 
 ---
 
@@ -69,7 +69,7 @@ python inference.py --dry-run
 
 | Resource | URL |
 |---|---|
-| GitHub | https://github.com/Sachu651g/Email-Env |
+| GitHub | https://github.com/Sachu651g/AI-Oversight-Inspector |
 | Colab training notebook | `round2/colab_train_oversight.ipynb` |
 | Blog post | `round2/BLOG_POST.md` |
 

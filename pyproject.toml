@@ -46,8 +46,8 @@ train = [
 
 [project.urls]
 "Homepage" = "https://huggingface.co/spaces/sachingunagi66/openenv-email-ops"
-"Repository" = "https://github.com/Sachu651g/Email-Env"
-"Bug Tracker" = "https://github.com/Sachu651g/Email-Env/issues"
+"Repository" = "https://github.com/Sachu651g/AI-Oversight-Inspector"
+"Bug Tracker" = "https://github.com/Sachu651g/AI-Oversight-Inspector/issues"
 
 [project.scripts]
 server = "server.app:main"

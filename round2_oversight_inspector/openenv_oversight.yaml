@@ -5,7 +5,7 @@ metadata:
   author: "Sachin S Gunagi"
   license: "MIT"
   hf_space: "https://huggingface.co/spaces/sachingunagi66/openenv-email-ops"
-  github: "https://github.com/Sachu651g/Email-Env"
+  github: "https://github.com/Sachu651g/AI-Oversight-Inspector"
   theme: "Multi-Agent Interactions + Scalable Oversight"
   hackathon: "Meta x Hugging Face OpenEnv Hackathon 2026 — Grand Finale"
   training_algorithm: "GRPO (Group Relative Policy Optimization) via HF TRL + Unsloth"

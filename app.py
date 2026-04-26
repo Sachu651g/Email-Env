@@ -315,7 +315,7 @@ def run_oversight_demo(seed: int = 42, difficulty: str = "easy") -> str:
         accuracy = (total_correct_detections / max(1, total_violations_found)) * 100 \
                    if total_violations_found > 0 else 100.0
 
-        # Pre-compute timeline HTML to avoid backslash-in-f-string SyntaxError (Python < 3.12)
+        # Pre-compute to avoid backslash-in-f-string SyntaxError on Python 3.11
         _no_actions_html = '<div style="color:#475569;font-size:12px">No actions taken yet</div>'
         _timeline_html = "".join(timeline_rows) if timeline_rows else _no_actions_html
 
@@ -449,7 +449,7 @@ HERO = """
     <span class="badge" style='background:rgba(245,158,11,.10);color:#fbbf24;border:1px solid rgba(245,158,11,.22)'>&#127891; Adaptive Curriculum</span>
   </div>
   <div style='display:flex;gap:10px;margin-bottom:20px'>
-    <a style='font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:700;padding:6px 16px;border-radius:8px;text-decoration:none;color:#e2e8f0;border:1px solid rgba(226,232,240,.15);background:rgba(226,232,240,.05)' href='https://github.com/Sachu651g/Email-Env' target='_blank'>&#11088; GitHub</a>
+    <a style='font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:700;padding:6px 16px;border-radius:8px;text-decoration:none;color:#e2e8f0;border:1px solid rgba(226,232,240,.15);background:rgba(226,232,240,.05)' href='https://github.com/Sachu651g/AI-Oversight-Inspector' target='_blank'>&#11088; GitHub</a>
     <a style='font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:700;padding:6px 16px;border-radius:8px;text-decoration:none;color:#fbbf24;border:1px solid rgba(251,191,36,.2);background:rgba(251,191,36,.06)' href='https://huggingface.co/spaces/sachingunagi66/openenv-email-ops' target='_blank'>&#129303; HF Space</a>
   </div>
   <!-- Stats — honest labelling of what is real vs training run values -->

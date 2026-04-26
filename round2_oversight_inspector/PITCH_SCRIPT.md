@@ -78,7 +78,7 @@ This environment teaches theory-of-mind reasoning, causal reasoning,
 and calibrated confidence — exactly the capabilities needed for
 **scalable AI oversight**, one of the most important open problems in AI safety.
 
-The code is at github.com/Sachu651g/Email-Env in the round2 folder.
+The code is at github.com/Sachu651g/AI-Oversight-Inspector in the round2 folder.
 Thank you."
 
 ---

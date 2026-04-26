@@ -549,7 +549,7 @@ HERO = """
     <span class="badge badge-amber">&#127891; Adaptive Curriculum</span>
   </div>
   <div class="pill-links">
-    <a class="pill-link gh" href="https://github.com/Sachu651g/Email-Env" target="_blank">&#11088; GitHub</a>
+    <a class="pill-link gh" href="https://github.com/Sachu651g/AI-Oversight-Inspector" target="_blank">&#11088; GitHub</a>
     <a class="pill-link hf" href="https://huggingface.co/spaces/sachingunagi66/openenv-email-ops" target="_blank">&#129303; HF Space</a>
   </div>
   <div class="section-label">How it works</div>
