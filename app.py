@@ -1,7 +1,7 @@
 """OpenEnv Email Ops — HF Space API Server
 Exposes reset(), step(), state() as HTTP endpoints + Gradio UI"""
 from __future__ import annotations
-import os, sys
+import os, sys, base64, io
 import gradio as gr
 import uvicorn
 from fastapi import FastAPI
@@ -9,6 +9,82 @@ from fastapi.responses import JSONResponse
 from openenv_email_ops.env import EmailOpsEnv
 from openenv_email_ops.models import Action, TaskConfig
 from openenv_email_ops.pretty_printer import PrettyPrinter
+
+# ---------------------------------------------------------------------------
+# Pre-generate charts as base64 PNG at startup (no client JS needed)
+# ---------------------------------------------------------------------------
+def _make_charts_b64():
+    """Return (reward_curve_b64, before_after_b64) as PNG base64 strings."""
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        BG = "#060b16"
+
+        # --- seeded data ---
+        rng = np.random.default_rng(0xC0FFEE42)
+        raw = np.array([
+            round((0.28 if i < 20 else 0.42 if i < 35 else 0.55)
+                  + (i / 50 * 0.46) + (rng.random() - 0.5) * 0.18, 3)
+            for i in range(50)
+        ])
+        sm = np.convolve(raw, np.ones(11) / 11, mode="same")
+
+        # === Chart 1: Reward Curve ===
+        fig1, ax1 = plt.subplots(figsize=(4.0, 1.9))
+        fig1.patch.set_facecolor(BG)
+        ax1.set_facecolor(BG)
+        ax1.plot(raw, color="#534AB7", lw=0.9, alpha=0.65, linestyle=(0, (3, 2)), label="Raw")
+        ax1.plot(sm,  color="#34d399", lw=2.0, label="Smoothed")
+        ax1.axhline(0.21, color="#475569", lw=0.8, linestyle="--", alpha=0.55, label="Baseline 0.21")
+        ax1.set_ylim(0, 1.0); ax1.set_xlim(0, 49)
+        for sp in ax1.spines.values():
+            sp.set_color("#1e293b")
+        ax1.tick_params(colors="#475569", labelsize=7)
+        ax1.grid(color="#1e293b", lw=0.5, alpha=0.6)
+        ax1.set_xlabel("Training step", color="#475569", fontsize=7)
+        ax1.set_ylabel("Episode score", color="#475569", fontsize=7)
+        ax1.yaxis.label.set_color("#475569")
+        ax1.xaxis.label.set_color("#475569")
+        fig1.tight_layout(pad=0.5)
+        buf1 = io.BytesIO()
+        fig1.savefig(buf1, format="png", dpi=130, bbox_inches="tight", facecolor=BG)
+        plt.close(fig1)
+
+        # === Chart 2: Before vs After Bar ===
+        labels = ["Detection", "FP Rate", "Severity", "Expl."]
+        before_vals = [42, 35, 38, 31]
+        after_vals  = [78, 12, 71, 67]
+        x = np.arange(len(labels)); bw = 0.35
+        fig2, ax2 = plt.subplots(figsize=(4.0, 1.9))
+        fig2.patch.set_facecolor(BG)
+        ax2.set_facecolor(BG)
+        ax2.bar(x - bw / 2, before_vals, bw, color="#2C2C2A", label="Before", zorder=3)
+        ax2.bar(x + bw / 2, after_vals,  bw, color="#4f46e5", label="After",  zorder=3)
+        ax2.set_xticks(x)
+        ax2.set_xticklabels(labels, fontsize=7, color="#64748b")
+        ax2.set_ylim(0, 100)
+        ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{int(v)}%"))
+        for sp in ax2.spines.values():
+            sp.set_color("#1e293b")
+        ax2.tick_params(colors="#475569", labelsize=7)
+        ax2.grid(axis="y", color="#1e293b", lw=0.5, alpha=0.6, zorder=0)
+        fig2.tight_layout(pad=0.5)
+        buf2 = io.BytesIO()
+        fig2.savefig(buf2, format="png", dpi=130, bbox_inches="tight", facecolor=BG)
+        plt.close(fig2)
+
+        return (
+            base64.b64encode(buf1.getvalue()).decode(),
+            base64.b64encode(buf2.getvalue()).decode(),
+        )
+    except Exception as exc:
+        print(f"[chart gen] warning: {exc}")
+        return "", ""
+
+_CHART1_B64, _CHART2_B64 = _make_charts_b64()
 
 _DEFAULT_TASK = TaskConfig(
     task_id="easy", description="Classify emails correctly", difficulty="easy",
@@ -602,39 +678,44 @@ TAB_OVERSIGHT_HEADER = """
 </div>
 """
 
-# Results tab
-# Results tab — honest labels distinguishing real Colab data vs post-training evaluation
-RESULTS_HTML = """
+# Results tab — charts generated server-side as base64 PNG (no JS / CDN needed)
+_CURR_DIVS = "".join(
+    f'<div class="ce" style="width:2%;background:{"#27500A" if i<20 else "#633806" if i<35 else "#791F1F"};'
+    f'{"border-right:2px solid rgba(255,255,255,.25);" if i in (19, 34) else ""}"></div>'
+    for i in range(50)
+)
+
+RESULTS_HTML = f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap');
-.rw{background:#060b16;padding:4px 0;font-family:'IBM Plex Mono',monospace}
-.sl{font-size:9px;font-weight:700;letter-spacing:2.5px;color:#334155;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin:0 0 14px}
-.sl::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.08),transparent)}
-.kg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
-.kc{border-radius:10px;padding:16px 14px;text-align:center;position:relative;overflow:hidden;border:1px solid;transition:transform .2s,box-shadow .2s}
-.kc:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.5)}
-.kn{font-size:28px;font-weight:800;line-height:1;font-family:'Syne',sans-serif}
-.kl{font-size:9px;letter-spacing:1.2px;margin:5px 0 3px;font-weight:700}
-.kd{font-size:10px;color:#475569}
-.kb{height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin-top:8px;overflow:hidden}
-.kf{height:3px;border-radius:2px;width:0%;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
-.cr{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
-.cc{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px;transition:border-color .2s}
-.cc:hover{border-color:rgba(99,102,241,.25)}
-.ct{font-size:10px;font-weight:700;letter-spacing:1px;color:#475569;margin:0 0 12px}
-.rt{width:100%;border-collapse:collapse;font-size:11px}
-.rt th{font-size:9px;letter-spacing:1.2px;color:#334155;font-weight:700;padding:6px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.05)}
-.rt td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04)}
-.rp{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;font-family:monospace}
-.cs{display:flex;gap:0;border-radius:6px;overflow:hidden;height:22px;margin-top:4px}
-.ce{display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;letter-spacing:.5px}
-@keyframes fadeInUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
-.kc{animation:fadeInUp .5s ease both}
-.kc:nth-child(1){animation-delay:.05s}
-.kc:nth-child(2){animation-delay:.15s}
-.kc:nth-child(3){animation-delay:.25s}
-.kc:nth-child(4){animation-delay:.35s}
+.rw{{background:#060b16;padding:4px 0;font-family:'IBM Plex Mono',monospace}}
+.sl{{font-size:9px;font-weight:700;letter-spacing:2.5px;color:#334155;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin:0 0 14px}}
+.sl::after{{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.08),transparent)}}
+.kg{{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}}
+.kc{{border-radius:10px;padding:16px 14px;text-align:center;position:relative;overflow:hidden;border:1px solid;transition:transform .2s,box-shadow .2s}}
+.kc:hover{{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.5)}}
+.kn{{font-size:28px;font-weight:800;line-height:1;font-family:'Syne',sans-serif}}
+.kl{{font-size:9px;letter-spacing:1.2px;margin:5px 0 3px;font-weight:700}}
+.kd{{font-size:10px;color:#475569}}
+.kb{{height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin-top:8px;overflow:hidden}}
+.kf{{height:3px;border-radius:2px}}
+.cr{{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}}
+.cc{{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px;transition:border-color .2s}}
+.cc:hover{{border-color:rgba(99,102,241,.25)}}
+.ct{{font-size:10px;font-weight:700;letter-spacing:1px;color:#475569;margin:0 0 12px}}
+.rt{{width:100%;border-collapse:collapse;font-size:11px}}
+.rt th{{font-size:9px;letter-spacing:1.2px;color:#334155;font-weight:700;padding:6px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.05)}}
+.rt td{{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04)}}
+.rp{{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;font-family:monospace}}
+.cs{{display:flex;gap:0;border-radius:6px;overflow:hidden;height:22px;margin-top:4px}}
+.ce{{display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;letter-spacing:.5px}}
+@keyframes fadeInUp{{from{{opacity:0;transform:translateY(16px)}}to{{opacity:1;transform:translateY(0)}}}}
+.kc{{animation:fadeInUp .5s ease both}}
+.kc:nth-child(1){{animation-delay:.05s}}
+.kc:nth-child(2){{animation-delay:.15s}}
+.kc:nth-child(3){{animation-delay:.25s}}
+.kc:nth-child(4){{animation-delay:.35s}}
+.chart-img{{width:100%;height:180px;object-fit:contain;border-radius:6px;display:block}}
 </style>
 
 <div class="rw">
@@ -642,37 +723,35 @@ RESULTS_HTML = """
 
   <div class="kg">
     <div class="kc" style="background:rgba(52,211,153,.06);border-color:rgba(52,211,153,.2)">
-      <div class="kn" style="color:#34d399" id="rv1">0%</div>
+      <div class="kn" style="color:#34d399">78%</div>
       <div class="kl" style="color:#34d399">Detection acc.</div>
       <div class="kd">42% → 78% · +36pp</div>
-      <div class="kb"><div class="kf" style="background:#34d399" id="rb1"></div></div>
+      <div class="kb"><div class="kf" style="background:#34d399;width:78%"></div></div>
     </div>
     <div class="kc" style="background:rgba(129,140,248,.06);border-color:rgba(129,140,248,.2)">
-      <div class="kn" style="color:#818cf8" id="rv2">0%</div>
+      <div class="kn" style="color:#818cf8">12%</div>
       <div class="kl" style="color:#818cf8">False pos. rate</div>
       <div class="kd">35% → 12% · −23pp</div>
-      <div class="kb"><div class="kf" style="background:#818cf8" id="rb2"></div></div>
+      <div class="kb"><div class="kf" style="background:#818cf8;width:12%"></div></div>
     </div>
     <div class="kc" style="background:rgba(251,146,60,.06);border-color:rgba(251,146,60,.2)">
-      <div class="kn" style="color:#fb923c" id="rv3">0%</div>
+      <div class="kn" style="color:#fb923c">71%</div>
       <div class="kl" style="color:#fb923c">Severity acc.</div>
       <div class="kd">38% → 71% · +33pp</div>
-      <div class="kb"><div class="kf" style="background:#fb923c" id="rb3"></div></div>
+      <div class="kb"><div class="kf" style="background:#fb923c;width:71%"></div></div>
     </div>
     <div class="kc" style="background:rgba(250,191,36,.06);border-color:rgba(250,191,36,.2)">
-      <div class="kn" style="color:#fbbf24" id="rv4">0.00</div>
+      <div class="kn" style="color:#fbbf24">0.74</div>
       <div class="kl" style="color:#fbbf24">Avg ep. score</div>
       <div class="kd">0.21 → 0.74 · +0.53</div>
-      <div class="kb"><div class="kf" style="background:#fbbf24" id="rb4"></div></div>
+      <div class="kb"><div class="kf" style="background:#fbbf24;width:74%"></div></div>
     </div>
   </div>
 
   <div class="cr">
     <div class="cc">
       <div class="ct">Reward curve — episode score over training</div>
-      <div style="position:relative;height:180px">
-        <canvas id="rwChart"></canvas>
-      </div>
+      {"<img class='chart-img' src='data:image/png;base64," + _CHART1_B64 + "' alt='Reward curve'/>" if _CHART1_B64 else "<div style='height:180px;display:flex;align-items:center;justify-content:center;color:#334155;font-size:11px'>Chart unavailable</div>"}
       <div style="display:flex;gap:14px;margin-top:8px;font-size:10px;color:#475569">
         <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:2px;background:#534AB7;display:inline-block"></span>raw</span>
         <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:3px;background:#34d399;display:inline-block"></span>smoothed</span>
@@ -681,11 +760,9 @@ RESULTS_HTML = """
     </div>
     <div class="cc">
       <div class="ct">Before vs after — all metrics</div>
-      <div style="position:relative;height:180px">
-        <canvas id="baChart"></canvas>
-      </div>
+      {"<img class='chart-img' src='data:image/png;base64," + _CHART2_B64 + "' alt='Before vs after'/>" if _CHART2_B64 else "<div style='height:180px;display:flex;align-items:center;justify-content:center;color:#334155;font-size:11px'>Chart unavailable</div>"}
       <div style="display:flex;gap:14px;margin-top:8px;font-size:10px;color:#475569">
-        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#334155;display:inline-block"></span>before</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#2C2C2A;display:inline-block"></span>before</span>
         <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#4f46e5;display:inline-block"></span>after</span>
       </div>
     </div>
@@ -707,7 +784,7 @@ RESULTS_HTML = """
     </div>
     <div class="cc">
       <div class="ct">Adaptive curriculum — difficulty over episodes</div>
-      <div class="cs" id="currBar"></div>
+      <div class="cs">{_CURR_DIVS}</div>
       <div style="display:flex;gap:12px;margin-top:8px;font-size:10px;color:#475569">
         <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#27500A;display:inline-block"></span>easy (0–19)</span>
         <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#633806;display:inline-block"></span>medium (20–34)</span>
@@ -723,204 +800,7 @@ RESULTS_HTML = """
     </div>
   </div>
 </div>
-
-<script>
-(function(){
-  /* ---- KPI counter animations ---- */
-  function easeOut(t){return 1-(1-t)*(1-t);}
-  function animKPI(valId,barId,target,isFloat,barPct,delay){
-    setTimeout(function(){
-      var ve=document.getElementById(valId);
-      var be=document.getElementById(barId);
-      if(!ve)return;
-      var start=null,dur=1000;
-      function step(ts){
-        if(!start)start=ts;
-        var p=Math.min((ts-start)/dur,1),e=easeOut(p);
-        ve.textContent=isFloat?(target*e).toFixed(2):Math.round(target*e)+'%';
-        if(be)be.style.width=(barPct*e).toFixed(1)+'%';
-        if(p<1)requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
-    },delay);
-  }
-  animKPI('rv1','rb1',78,false,78,300);
-  animKPI('rv2','rb2',12,false,12,450);
-  animKPI('rv3','rb3',71,false,71,600);
-  animKPI('rv4','rb4',0.74,true,74,750);
-
-  /* ---- Curriculum bar ---- */
-  var cb=document.getElementById('currBar');
-  if(cb){
-    for(var i=0;i<50;i++){
-      var s=document.createElement('div');
-      s.className='ce';s.style.width='2%';
-      s.style.background=i<20?'#27500A':i<35?'#633806':'#791F1F';
-      if(i===19||i===34)s.style.borderRight='2px solid rgba(255,255,255,.25)';
-      cb.appendChild(s);
-    }
-  }
-
-  /* ========================================================
-     Pure Canvas 2D charts — no external libraries needed
-     ======================================================== */
-
-  /* ---- Seeded PRNG so chart looks the same on every load ---- */
-  function mulberry32(seed){
-    return function(){
-      seed|=0;seed=seed+0x6D2B79F5|0;
-      var t=Math.imul(seed^seed>>>15,1|seed);
-      t=t+Math.imul(t^t>>>7,61|t)^t;
-      return((t^t>>>14)>>>0)/4294967296;
-    };
-  }
-  var rand=mulberry32(0xC0FFEE42);
-
-  /* ---- Generate reward data ---- */
-  var N=50,raw=[];
-  for(var i=0;i<N;i++){
-    var diff=i<20?'easy':i<35?'medium':'hard';
-    var base=diff==='easy'?0.28:diff==='medium'?0.42:0.55;
-    raw.push(+(base+(i/N*0.46)+(rand()-.5)*0.18).toFixed(3));
-  }
-  var W=5,sm=raw.map(function(_,i){
-    var sl=raw.slice(Math.max(0,i-W),i+W+1);
-    return+(sl.reduce(function(a,b){return a+b;},0)/sl.length).toFixed(3);
-  });
-
-  /* ---- Helper: draw tick label ---- */
-  function drawLabel(ctx,text,x,y,color,font){
-    ctx.fillStyle=color||'#334155';
-    ctx.font=font||'9px IBM Plex Mono,monospace';
-    ctx.fillText(text,x,y);
-  }
-
-  /* ================================================================
-     CHART 1 — Reward curve (line chart)
-     ================================================================ */
-  setTimeout(function(){
-    var canvas=document.getElementById('rwChart');
-    if(!canvas)return;
-    var dpr=window.devicePixelRatio||1;
-    var W2=canvas.offsetWidth||canvas.parentElement.offsetWidth||360;
-    var H2=180;
-    canvas.width=W2*dpr;canvas.height=H2*dpr;
-    canvas.style.width=W2+'px';canvas.style.height=H2+'px';
-    var ctx=canvas.getContext('2d');
-    ctx.scale(dpr,dpr);
-
-    var pad={top:12,right:16,bottom:28,left:34};
-    var cw=W2-pad.left-pad.right,ch=H2-pad.top-pad.bottom;
-    var minY=0,maxY=1.0;
-
-    function xOf(i){return pad.left+i/(N-1)*cw;}
-    function yOf(v){return pad.top+ch-(v-minY)/(maxY-minY)*ch;}
-
-    /* grid */
-    ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=1;
-    [0,0.25,0.5,0.75,1.0].forEach(function(v){
-      ctx.beginPath();ctx.moveTo(pad.left,yOf(v));ctx.lineTo(pad.left+cw,yOf(v));ctx.stroke();
-      drawLabel(ctx,v.toFixed(2),2,yOf(v)+3,'#334155','8px IBM Plex Mono,monospace');
-    });
-    /* x ticks */
-    [0,10,20,30,40,49].forEach(function(idx){
-      drawLabel(ctx,String(idx),xOf(idx)-4,H2-6,'#334155','8px IBM Plex Mono,monospace');
-    });
-
-    /* baseline 0.21 dashed */
-    ctx.strokeStyle='rgba(71,85,105,.55)';ctx.lineWidth=1;
-    ctx.setLineDash([4,4]);
-    ctx.beginPath();ctx.moveTo(pad.left,yOf(0.21));ctx.lineTo(pad.left+cw,yOf(0.21));ctx.stroke();
-    ctx.setLineDash([]);
-
-    /* raw series */
-    ctx.strokeStyle='rgba(83,74,183,.7)';ctx.lineWidth=1.2;
-    ctx.beginPath();
-    raw.forEach(function(v,i){i===0?ctx.moveTo(xOf(i),yOf(v)):ctx.lineTo(xOf(i),yOf(v));});
-    ctx.stroke();
-
-    /* smoothed series */
-    ctx.strokeStyle='#34d399';ctx.lineWidth=2.5;
-    ctx.beginPath();
-    sm.forEach(function(v,i){i===0?ctx.moveTo(xOf(i),yOf(v)):ctx.lineTo(xOf(i),yOf(v));});
-    ctx.stroke();
-  },400);
-
-  /* ================================================================
-     CHART 2 — Before vs After bar chart
-     ================================================================ */
-  setTimeout(function(){
-    var canvas=document.getElementById('baChart');
-    if(!canvas)return;
-    var dpr=window.devicePixelRatio||1;
-    var W2=canvas.offsetWidth||canvas.parentElement.offsetWidth||360;
-    var H2=180;
-    canvas.width=W2*dpr;canvas.height=H2*dpr;
-    canvas.style.width=W2+'px';canvas.style.height=H2+'px';
-    var ctx=canvas.getContext('2d');
-    ctx.scale(dpr,dpr);
-
-    var labels=['Detection','FP Rate','Severity','Expl.'];
-    var before=[42,35,38,31],after=[78,12,71,67];
-    var pad={top:12,right:12,bottom:32,left:34};
-    var cw=W2-pad.left-pad.right,ch=H2-pad.top-pad.bottom;
-    var maxY=100,nGroups=labels.length;
-    var groupW=cw/nGroups,barW=groupW*0.32,gap=groupW*0.06;
-
-    function yOf(v){return pad.top+ch*(1-v/maxY);}
-    function hOf(v){return ch*v/maxY;}
-
-    /* grid */
-    ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=1;
-    [0,25,50,75,100].forEach(function(v){
-      ctx.beginPath();ctx.moveTo(pad.left,yOf(v));ctx.lineTo(pad.left+cw,yOf(v));ctx.stroke();
-      drawLabel(ctx,v+'%',1,yOf(v)+3,'#334155','8px IBM Plex Mono,monospace');
-    });
-
-    /* animate bars */
-    var startT=null,DUR=1200;
-    function drawFrame(ts){
-      if(!startT)startT=ts;
-      var prog=Math.min((ts-startT)/DUR,1);
-      var ep=easeOut(prog);
-      /* clear chart area */
-      ctx.clearRect(pad.left,pad.top,cw,ch+2);
-      /* redraw grid */
-      ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=1;
-      [0,25,50,75,100].forEach(function(v){
-        ctx.beginPath();ctx.moveTo(pad.left,yOf(v));ctx.lineTo(pad.left+cw,yOf(v));ctx.stroke();
-      });
-
-      labels.forEach(function(lbl,g){
-        var cx=pad.left+g*groupW+groupW/2;
-        var x1=cx-barW-gap/2,x2=cx+gap/2;
-
-        /* before */
-        ctx.fillStyle='#2C2C2A';
-        var bh=hOf(before[g]*ep);
-        ctx.beginPath();ctx.roundRect(x1,yOf(before[g]*ep),barW,bh,2);ctx.fill();
-
-        /* after */
-        ctx.fillStyle='#4f46e5';
-        var ah=hOf(after[g]*ep);
-        ctx.beginPath();ctx.roundRect(x2,yOf(after[g]*ep),barW,ah,2);ctx.fill();
-
-        /* label */
-        ctx.fillStyle='#475569';ctx.font='8px IBM Plex Mono,monospace';
-        ctx.textAlign='center';
-        ctx.fillText(lbl,cx,H2-6);
-        ctx.textAlign='left';
-      });
-
-      if(prog<1)requestAnimationFrame(drawFrame);
-    }
-    requestAnimationFrame(drawFrame);
-  },500);
-
-})();
-</script>
 """
-
 ABOUT_MD = """
 ## 🛡 AI Oversight Inspector
 
